@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -219,7 +219,7 @@
     <canvas id="game" width="900" height="560"></canvas>
   </div>
 
-  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN FOR A DOUBLE STRIKE</div>
+  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN FOR A DOUBLE STRIKE · MAGNETS STOP AT THE EDGE — ONLY A HIT FROM ANOTHER MAGNET CAN KNOCK ONE OFF</div>
 </div>
 
 <!-- START OVERLAY -->
@@ -269,7 +269,8 @@
   const REPEL_ZONE = PUCK_R*2 + 6; // soft repulsion starts here
   const RESTITUTION = 0.92;
   const MAX_PULL = 150;            // px, drag distance cap
-  const POWER_SCALE = 0.052;       // drag px -> velocity
+  const POWER_SCALE = 0.038;       // drag px -> velocity
+  const HIT_IMPULSE_THRESHOLD = 0.3; // min collision impulse to count as "being hit" while at the edge
   const CORNER_ZONE_R = 34;
   const CORNER_INSET = 54;
   const EDGE_MARGIN = PUCK_R * 0.15; // how far past edge before elimination
@@ -319,6 +320,7 @@
       falling:false, fallT:0,
       eliminatedAt:0,
       inZone:false,
+      atEdge:false, justHit:false, knockedOff:false,
       flipping:false, flipT:0, flipDur:820, flipResult:null,
       powered:false, poweredT:0, // cosmetic afterglow when landed on side B
       smileySeed: Math.random()*10
@@ -466,11 +468,41 @@
 
           const kx = a.vx-b.vx, ky = a.vy-b.vy;
           const p_ = (kx*nx + ky*ny) * RESTITUTION;
+          if(Math.abs(p_) > HIT_IMPULSE_THRESHOLD){
+            a.justHit = true; b.justHit = true;
+          }
           a.vx -= p_*nx; a.vy -= p_*ny;
           b.vx += p_*nx; b.vy += p_*ny;
         }
       }
     }
+
+    // wall boundary handling: a magnet stops right at the edge of the table.
+    // it will only go over (and fall) if it's already resting at the edge
+    // and gets hit by another puck's collision.
+    alive.forEach(p=>{
+      const minX = p.r, maxX = W-p.r, minY = p.r, maxY = H-p.r;
+      const touching = p.x<=minX || p.x>=maxX || p.y<=minY || p.y>=maxY;
+      if(touching){
+        if(p.justHit && p.atEdge){
+          // it was already resting at the edge and just got hit — send it over
+          p.knockedOff = true;
+        }
+        if(!p.knockedOff){
+          // stop right at the edge, whether it arrived under its own power or drifted here
+          if(p.x<minX) p.x=minX;
+          if(p.x>maxX) p.x=maxX;
+          if(p.y<minY) p.y=minY;
+          if(p.y>maxY) p.y=maxY;
+          p.vx = 0; p.vy = 0;
+        }
+        p.atEdge = true;
+      } else {
+        p.atEdge = false;
+        p.knockedOff = false;
+      }
+      p.justHit = false;
+    });
 
     // corner zone detection
     alive.forEach(p=>{
@@ -812,8 +844,8 @@
     dist = Math.min(dist, MAX_PULL);
     const angle = Math.atan2(dy,dx);
     const power = dist * POWER_SCALE;
-    p.vx = Math.cos(angle)*power*10;
-    p.vy = Math.sin(angle)*power*10;
+    p.vx = Math.cos(angle)*power*6;
+    p.vy = Math.sin(angle)*power*6;
 
     shooterThisTurn = p.id;
     awaitingSettle = true;
@@ -892,4 +924,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
