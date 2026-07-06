@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -219,7 +219,8 @@
     <canvas id="game" width="900" height="560"></canvas>
   </div>
 
-  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN FOR A DOUBLE STRIKE · MAGNETS STOP AT THE EDGE — ONLY A HIT FROM ANOTHER MAGNET CAN KNOCK ONE OFF</div>
+  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN TO HIT HARDER UNTIL YOUR NEXT FLIP · MAGNETS STOP AT THE EDGE — ONLY A HIT FROM ANOTHER MAGNET CAN KNOCK ONE OFF</div>
+
 </div>
 
 <!-- START OVERLAY -->
@@ -290,10 +291,9 @@
   let turnOrder = ['red','green','yellow'];
   let turnIndex = 0;
   let activeId = 'red';
-  let extraShotPending = false;   // double-strike flag for CURRENT active puck
   let awaitingSettle = false;     // physics moving, waiting to resolve turn
   let gameOver = false;
-  let shooterThisTurn = null;
+  const BOOST_HIT = 1.7;          // extra knockback multiplier while "powered"
 
   let aiming = false;
   let aimPointerId = null;
@@ -322,16 +322,14 @@
       inZone:false,
       atEdge:false, justHit:false, knockedOff:false,
       flipping:false, flipT:0, flipDur:820, flipResult:null,
-      powered:false, poweredT:0, // cosmetic afterglow when landed on side B
+      powered:false, // true while boosted (hits harder) from landing on side B; lasts until next flip
       smileySeed: Math.random()*10
     };
   }
 
   function resetGame(){
     gameOver = false;
-    extraShotPending = false;
     awaitingSettle = false;
-    shooterThisTurn = null;
     aiming = false;
     initCorners();
     pucks = [
@@ -386,11 +384,6 @@
   /* ===================== TURN MANAGEMENT ===================== */
   function nextTurn(){
     if(checkWin()) return;
-    if(extraShotPending){
-      extraShotPending = false; // consume the double strike, same player shoots again
-      updateHUD();
-      return;
-    }
     // advance to next alive puck
     let tries = 0;
     do{
@@ -404,7 +397,8 @@
 
   function updateHUD(){
     const label = document.getElementById('turnLabel');
-    label.textContent = activeId.toUpperCase() + (extraShotPending? ' ★ (DOUBLE STRIKE)' : '');
+    const activePuck = pucks.find(pp=>pp.id===activeId);
+    label.textContent = activeId.toUpperCase() + (activePuck && activePuck.powered ? ' ★ (POWERED)' : '');
     label.className = activeId;
     ['red','green','yellow'].forEach(id=>{
       const el = document.getElementById('d-'+id);
@@ -417,7 +411,8 @@
   function speed(p){ return Math.hypot(p.vx,p.vy); }
   function allSettled(){
     return pucks.filter(p=>p.alive && !p.falling).every(p=> speed(p) < MIN_SPEED) &&
-           !pucks.some(p=>p.flipping);
+           !pucks.some(p=>p.flipping) &&
+           !pucks.some(p=>p.falling);
   }
 
   function stepPhysics(){
@@ -471,8 +466,11 @@
           if(Math.abs(p_) > HIT_IMPULSE_THRESHOLD){
             a.justHit = true; b.justHit = true;
           }
-          a.vx -= p_*nx; a.vy -= p_*ny;
-          b.vx += p_*nx; b.vy += p_*ny;
+          // a powered puck sends the OTHER puck flying harder on impact
+          const impulseOnA = p_ * (b.powered ? BOOST_HIT : 1);
+          const impulseOnB = p_ * (a.powered ? BOOST_HIT : 1);
+          a.vx -= impulseOnA*nx; a.vy -= impulseOnA*ny;
+          b.vx += impulseOnB*nx; b.vy += impulseOnB*ny;
         }
       }
     }
@@ -538,13 +536,6 @@
       }
     });
 
-    // afterglow decay
-    pucks.forEach(p=>{
-      if(p.powered){
-        p.poweredT += 1;
-        if(p.poweredT > 150) p.powered = false;
-      }
-    });
   }
 
   function triggerFlip(p){
@@ -561,14 +552,9 @@
         if(p.flipT >= p.flipDur){
           p.flipping = false;
           p.flipResult = p.pendingResult ? 'B' : 'A';
-          if(p.pendingResult){
-            p.powered = true;
-            p.poweredT = 0;
-            // only grants extra shot if this is the puck that was just shot this turn
-            if(shooterThisTurn === p.id){
-              extraShotPending = true;
-            }
-          }
+          // powered (hits-harder boost) turns on for a gold result, off otherwise,
+          // and now persists until this puck flips again (no timer decay)
+          p.powered = !!p.pendingResult;
         }
       }
     });
@@ -674,7 +660,7 @@
       ctx.restore();
     }
 
-    // powered afterglow ring (double strike token)
+    // powered ring — puck is boosted (hits harder) until its next flip
     if(p.powered && !p.flipping){
       ctx.save();
       ctx.strokeStyle = 'rgba(244,215,138,0.85)';
@@ -847,7 +833,6 @@
     p.vx = Math.cos(angle)*power*6;
     p.vy = Math.sin(angle)*power*6;
 
-    shooterThisTurn = p.id;
     awaitingSettle = true;
   }
 
@@ -866,7 +851,6 @@
 
       if(awaitingSettle && allSettled()){
         awaitingSettle = false;
-        shooterThisTurn = null;
         nextTurn();
       }
     }
@@ -924,4 +908,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
