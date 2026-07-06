@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Magnetic Clash</title>
+<style>
+  :root{
+    --bg-void:#05070c;
+    --table-felt:#0e1626;
+    --table-felt-2:#131f36;
+    --line-cyan:#28e0ff;
+    --red:#ff3b4e;
+    --red-glow:#ff8a94;
+    --green:#39ff8f;
+    --green-glow:#a3ffce;
+    --yellow:#ffd23f;
+    --yellow-glow:#fff2b0;
+    --ink:#eaf6ff;
+    --dim:#5c7796;
+    --gold:#f4d78a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg-void);
+    font-family:'Courier New', Courier, monospace;
+    color:var(--ink);
+    overflow:hidden;
+    user-select:none;
+  }
+  body{
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% 0%, #0c1626 0%, #05070c 60%);
+  }
+
+  #app{
+    width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px;
+    padding:10px;
+  }
+
+  /* ---------- HUD ---------- */
+  #hud{
+    width:min(94vw, 920px);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:8px;
+    letter-spacing:1px;
+  }
+  .hud-block{
+    display:flex; align-items:center; gap:8px;
+    font-size:11px;
+    padding:6px 10px;
+    background:linear-gradient(180deg,#0f1a2c,#0a1320);
+    border:1px solid #1f3350;
+    border-radius:4px;
+    box-shadow: inset 0 0 12px rgba(40,224,255,0.06);
+  }
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0;}
+  .dot.red{background:var(--red); box-shadow:0 0 6px var(--red);}
+  .dot.green{background:var(--green); box-shadow:0 0 6px var(--green);}
+  .dot.yellow{background:var(--yellow); box-shadow:0 0 6px var(--yellow);}
+  .dot.dead{background:#2a2a2a !important; box-shadow:none !important; opacity:.4;}
+  #turnLabel{
+    font-size:12px; font-weight:bold; letter-spacing:2px;
+    text-transform:uppercase;
+    text-shadow:0 0 8px currentColor;
+  }
+  #turnLabel.red{color:var(--red);}
+  #turnLabel.green{color:var(--green);}
+  #turnLabel.yellow{color:var(--yellow);}
+
+  button{
+    font-family:inherit; letter-spacing:1px; text-transform:uppercase;
+    cursor:pointer;
+    background:linear-gradient(180deg,#16243b,#0a121f);
+    color:var(--line-cyan);
+    border:1px solid #2a4666;
+    border-radius:4px;
+    padding:8px 14px;
+    font-size:11px;
+    transition:transform .08s ease, box-shadow .15s ease;
+    box-shadow:0 0 0 rgba(40,224,255,0);
+  }
+  button:hover{ box-shadow:0 0 12px rgba(40,224,255,0.35); }
+  button:active{ transform:scale(0.95); }
+  button.primary{
+    color:#04141a;
+    background:linear-gradient(180deg, #4be8ff, #16b8d6);
+    border:1px solid #7cf3ff;
+    font-weight:bold;
+  }
+
+  /* ---------- table wrap ---------- */
+  #tableWrap{
+    position:relative;
+    border-radius:14px;
+    padding:26px;
+    background:
+      linear-gradient(145deg,#1a2740,#0a1220);
+    box-shadow:
+      0 0 0 2px #223756,
+      0 0 40px rgba(40,224,255,0.08),
+      0 20px 60px rgba(0,0,0,0.6) ;
+  }
+  canvas{
+    display:block;
+    border-radius:6px;
+    touch-action:none;
+    background:transparent;
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(3,6,12,0.88);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+    backdrop-filter: blur(2px);
+  }
+  .overlay.hidden{display:none;}
+  .panel{
+    width:min(92vw, 460px);
+    background:linear-gradient(180deg,#101c30,#0a1220);
+    border:1px solid #24405f;
+    border-radius:10px;
+    padding:28px 24px;
+    text-align:center;
+    box-shadow:0 0 50px rgba(40,224,255,0.08);
+  }
+  .title{
+    font-size: clamp(22px, 6vw, 32px);
+    letter-spacing:4px;
+    font-weight:bold;
+    margin:0 0 6px 0;
+    color:var(--ink);
+    text-shadow: 0 0 14px var(--line-cyan), 0 0 2px #fff;
+  }
+  .title span{color:var(--line-cyan);}
+  .subtitle{
+    font-size:11px; color:var(--dim); letter-spacing:2px; margin-bottom:22px;
+    text-transform:uppercase;
+  }
+  .mode-row{
+    display:flex; flex-direction:column; gap:10px; margin-bottom:20px;
+  }
+  .mode-btn{
+    width:100%; padding:14px 10px; font-size:12px;
+    text-align:left;
+    border-radius:6px;
+    background:linear-gradient(180deg,#0e1a2c,#0a1320);
+    border:1px solid #22384f;
+    color:var(--ink);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .mode-btn b{color:var(--line-cyan); letter-spacing:1px;}
+  .mode-btn small{color:var(--dim); font-size:10px; letter-spacing:0.5px;}
+  .mode-btn.selected{
+    border-color: var(--line-cyan);
+    box-shadow:0 0 16px rgba(40,224,255,0.25);
+  }
+  .legend-row{ display:flex; justify-content:center; gap:16px; margin-bottom:20px; font-size:10px; color:var(--dim);}
+  .legend-row .dot{width:9px;height:9px;}
+
+  #winPanel .title{ font-size: clamp(20px,7vw,30px); }
+  #winMsg{ font-size:13px; letter-spacing:1px; margin-bottom:22px; color:var(--gold); text-shadow:0 0 10px var(--gold); }
+
+  #powerMeterWrap{
+    width:min(94vw,920px);
+    height:8px;
+    background:#0a1220;
+    border:1px solid #223756;
+    border-radius:6px;
+    overflow:hidden;
+    opacity:0;
+    transition:opacity .15s ease;
+  }
+  #powerMeterWrap.show{opacity:1;}
+  #powerMeter{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#28e0ff,#ff3b4e);
+    transition:width .04s linear;
+  }
+
+  .footer-note{
+    font-size:9px; color:var(--dim); letter-spacing:1px; text-align:center; max-width:600px;
+  }
+
+  @media (max-width:600px){
+    #hud{ font-size:9px; flex-wrap:wrap; }
+    .hud-block{ font-size:9px; padding:5px 8px; }
+    #tableWrap{ padding:14px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="hud">
+    <div class="hud-block" id="rosterBlock">
+      <span class="dot red" id="d-red"></span>
+      <span class="dot green" id="d-green"></span>
+      <span class="dot yellow" id="d-yellow"></span>
+    </div>
+    <div class="hud-block">
+      <span>TURN:</span><span id="turnLabel" class="red">RED</span>
+    </div>
+    <div class="hud-block" style="cursor:pointer;" id="resetBtn">
+      ⟲ RESET
+    </div>
+  </div>
+
+  <div id="powerMeterWrap"><div id="powerMeter"></div></div>
+
+  <div id="tableWrap">
+    <canvas id="game" width="900" height="560"></canvas>
+  </div>
+
+  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN FOR A DOUBLE STRIKE</div>
+</div>
+
+<!-- START OVERLAY -->
+<div class="overlay" id="startOverlay">
+  <div class="panel">
+    <div class="title">MAGNETIC <span>CLASH</span></div>
+    <div class="subtitle">top-down arcade magnet combat</div>
+    <div class="mode-row">
+      <button class="mode-btn selected" data-mode="ffa" id="modeFFA">
+        <b>① FREE-FOR-ALL</b>
+        <small>Red vs Green vs Yellow — every magnet for itself</small>
+      </button>
+      <button class="mode-btn" data-mode="teams" id="modeTeams">
+        <b>② TEAMS</b>
+        <small>Green &amp; Yellow team up against Red</small>
+      </button>
+    </div>
+    <div class="legend-row">
+      <span><span class="dot red"></span> RED</span>
+      <span><span class="dot green"></span> GREEN</span>
+      <span><span class="dot yellow"></span> YELLOW</span>
+    </div>
+    <button class="primary" id="startBtn" style="width:100%; padding:14px; font-size:13px;">START MATCH</button>
+  </div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="overlay hidden" id="winOverlay">
+  <div class="panel" id="winPanel">
+    <div class="title">MATCH OVER</div>
+    <div id="winMsg">—</div>
+    <button class="primary" id="playAgainBtn" style="width:100%; padding:14px; font-size:13px;">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== CONFIG ===================== */
+  const W = 900, H = 560;
+  const PUCK_R = 26;
+  const FRICTION = 0.9875;
+  const MIN_SPEED = 0.045;
+  const MAGNET_RANGE = 170;
+  const MAGNET_STRENGTH = 520;     // attraction constant
+  const REPEL_ZONE = PUCK_R*2 + 6; // soft repulsion starts here
+  const RESTITUTION = 0.92;
+  const MAX_PULL = 150;            // px, drag distance cap
+  const POWER_SCALE = 0.052;       // drag px -> velocity
+  const CORNER_ZONE_R = 34;
+  const CORNER_INSET = 54;
+  const EDGE_MARGIN = PUCK_R * 0.15; // how far past edge before elimination
+
+  const COLORS = {
+    red:    { main:'#ff3b4e', glow:'#ff8a94', dark:'#7a1420' },
+    green:  { main:'#39ff8f', glow:'#a3ffce', dark:'#0e6b3b' },
+    yellow: { main:'#ffd23f', glow:'#fff2b0', dark:'#8a6a0c' }
+  };
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  /* ===================== STATE ===================== */
+  let mode = 'ffa';
+  let pucks = [];
+  let turnOrder = ['red','green','yellow'];
+  let turnIndex = 0;
+  let activeId = 'red';
+  let extraShotPending = false;   // double-strike flag for CURRENT active puck
+  let awaitingSettle = false;     // physics moving, waiting to resolve turn
+  let gameOver = false;
+  let shooterThisTurn = null;
+
+  let aiming = false;
+  let aimPointerId = null;
+  let aimStart = {x:0,y:0};
+  let aimCurrent = {x:0,y:0};
+
+  let corners = [];
+
+  function initCorners(){
+    corners = [
+      {x:CORNER_INSET, y:CORNER_INSET},
+      {x:W-CORNER_INSET, y:CORNER_INSET},
+      {x:CORNER_INSET, y:H-CORNER_INSET},
+      {x:W-CORNER_INSET, y:H-CORNER_INSET}
+    ].map(c=>({...c, spin: Math.random()*Math.PI*2}));
+  }
+
+  function makePuck(id, color, x, y){
+    return {
+      id, color,
+      x, y, vx:0, vy:0,
+      r: PUCK_R,
+      alive:true,
+      falling:false, fallT:0,
+      eliminatedAt:0,
+      inZone:false,
+      flipping:false, flipT:0, flipDur:820, flipResult:null,
+      powered:false, poweredT:0, // cosmetic afterglow when landed on side B
+      smileySeed: Math.random()*10
+    };
+  }
+
+  function resetGame(){
+    gameOver = false;
+    extraShotPending = false;
+    awaitingSettle = false;
+    shooterThisTurn = null;
+    aiming = false;
+    initCorners();
+    pucks = [
+      makePuck('red','red', W*0.5, H*0.18),
+      makePuck('green','green', W*0.25, H*0.82),
+      makePuck('yellow','yellow', W*0.75, H*0.82)
+    ];
+    turnOrder = ['red','green','yellow'];
+    turnIndex = 0;
+    activeId = turnOrder[0];
+    updateHUD();
+  }
+
+  /* ===================== TEAM LOGIC ===================== */
+  function teamOf(id){
+    if(mode!=='teams') return id;
+    if(id==='green'||id==='yellow') return 'gy';
+    return 'red';
+  }
+  function aliveIds(){ return pucks.filter(p=>p.alive).map(p=>p.id); }
+
+  function checkWin(){
+    const alive = pucks.filter(p=>p.alive);
+    if(mode==='ffa'){
+      if(alive.length<=1){
+        gameOver = true;
+        const winner = alive[0];
+        showWin(winner ? `${winner.id.toUpperCase()} MAGNET WINS!` : "DOUBLE KNOCKOUT — NO WINNER");
+        return true;
+      }
+    } else {
+      const teams = new Set(alive.map(p=>teamOf(p.id)));
+      if(teams.size<=1){
+        gameOver = true;
+        const t = alive.length? teamOf(alive[0].id) : null;
+        let msg;
+        if(!t) msg = "DOUBLE KNOCKOUT — NO WINNER";
+        else if(t==='gy') msg = "GREEN & YELLOW TEAM WINS!";
+        else msg = "RED WINS SOLO!";
+        showWin(msg);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function showWin(msg){
+    document.getElementById('winMsg').textContent = msg;
+    document.getElementById('winOverlay').classList.remove('hidden');
+  }
+
+  /* ===================== TURN MANAGEMENT ===================== */
+  function nextTurn(){
+    if(checkWin()) return;
+    if(extraShotPending){
+      extraShotPending = false; // consume the double strike, same player shoots again
+      updateHUD();
+      return;
+    }
+    // advance to next alive puck
+    let tries = 0;
+    do{
+      turnIndex = (turnIndex+1) % turnOrder.length;
+      tries++;
+    } while(!pucks.find(p=>p.id===turnOrder[turnIndex] && p.alive) && tries<10);
+    const nextPuck = pucks.find(p=>p.id===turnOrder[turnIndex]);
+    activeId = nextPuck ? nextPuck.id : activeId;
+    updateHUD();
+  }
+
+  function updateHUD(){
+    const label = document.getElementById('turnLabel');
+    label.textContent = activeId.toUpperCase() + (extraShotPending? ' ★ (DOUBLE STRIKE)' : '');
+    label.className = activeId;
+    ['red','green','yellow'].forEach(id=>{
+      const el = document.getElementById('d-'+id);
+      const p = pucks.find(pp=>pp.id===id);
+      el.className = 'dot '+id + (p && !p.alive ? ' dead':'');
+    });
+  }
+
+  /* ===================== PHYSICS ===================== */
+  function speed(p){ return Math.hypot(p.vx,p.vy); }
+  function allSettled(){
+    return pucks.filter(p=>p.alive && !p.falling).every(p=> speed(p) < MIN_SPEED) &&
+           !pucks.some(p=>p.flipping);
+  }
+
+  function stepPhysics(){
+    const alive = pucks.filter(p=>p.alive && !p.falling);
+
+    // magnetic forces (attraction at range, soft repulsion very close)
+    for(let i=0;i<alive.length;i++){
+      for(let j=i+1;j<alive.length;j++){
+        const a = alive[i], b = alive[j];
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const dist = Math.max(Math.hypot(dx,dy), 1);
+        if(dist < MAGNET_RANGE){
+          const nx = dx/dist, ny = dy/dist;
+          let force;
+          if(dist < REPEL_ZONE){
+            // strong repulsion to prevent overlap / stacking
+            force = -MAGNET_STRENGTH * ((REPEL_ZONE-dist)/REPEL_ZONE) * 2.2;
+          } else {
+            // gentle magnetic pull toward each other
+            force = MAGNET_STRENGTH / (dist*dist) * 40;
+          }
+          const fx = nx*force, fy = ny*force;
+          a.vx -= fx*0.0016; a.vy -= fy*0.0016;
+          b.vx += fx*0.0016; b.vy += fy*0.0016;
+        }
+      }
+    }
+
+    // integrate + friction
+    alive.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      p.vx *= FRICTION; p.vy *= FRICTION;
+      if(speed(p) < MIN_SPEED){ p.vx=0; p.vy=0; }
+    });
+
+    // elastic collisions (equal mass)
+    for(let i=0;i<alive.length;i++){
+      for(let j=i+1;j<alive.length;j++){
+        const a = alive[i], b = alive[j];
+        const dx = b.x-a.x, dy = b.y-a.y;
+        const dist = Math.hypot(dx,dy);
+        const minDist = a.r+b.r;
+        if(dist < minDist && dist>0){
+          const nx = dx/dist, ny = dy/dist;
+          const overlap = (minDist-dist)/2;
+          a.x -= nx*overlap; a.y -= ny*overlap;
+          b.x += nx*overlap; b.y += ny*overlap;
+
+          const kx = a.vx-b.vx, ky = a.vy-b.vy;
+          const p_ = (kx*nx + ky*ny) * RESTITUTION;
+          a.vx -= p_*nx; a.vy -= p_*ny;
+          b.vx += p_*nx; b.vy += p_*ny;
+        }
+      }
+    }
+
+    // corner zone detection
+    alive.forEach(p=>{
+      if(p.flipping) return;
+      const zone = corners.find(c=> Math.hypot(p.x-c.x, p.y-c.y) < CORNER_ZONE_R);
+      if(zone && !p.inZone){
+        p.inZone = true;
+        triggerFlip(p);
+      } else if(!zone){
+        p.inZone = false;
+      }
+    });
+
+    // falling / off-table check
+    pucks.forEach(p=>{
+      if(!p.alive || p.falling) return;
+      const off = p.x < -EDGE_MARGIN || p.x > W+EDGE_MARGIN || p.y < -EDGE_MARGIN || p.y > H+EDGE_MARGIN;
+      if(off){
+        p.falling = true;
+        p.fallT = 0;
+      }
+    });
+
+    pucks.forEach(p=>{
+      if(p.falling){
+        p.fallT += 1;
+        p.x += p.vx*0.5; p.y += p.vy*0.5;
+        p.vx*=0.96; p.vy*=0.96;
+        if(p.fallT > 40){
+          p.alive = false;
+          p.falling = false;
+        }
+      }
+    });
+
+    // afterglow decay
+    pucks.forEach(p=>{
+      if(p.powered){
+        p.poweredT += 1;
+        if(p.poweredT > 150) p.powered = false;
+      }
+    });
+  }
+
+  function triggerFlip(p){
+    p.flipping = true;
+    p.flipT = 0;
+    const success = Math.random() < 0.5;
+    p.pendingResult = success;
+  }
+
+  function stepFlips(){
+    pucks.forEach(p=>{
+      if(p.flipping){
+        p.flipT += 16.6;
+        if(p.flipT >= p.flipDur){
+          p.flipping = false;
+          p.flipResult = p.pendingResult ? 'B' : 'A';
+          if(p.pendingResult){
+            p.powered = true;
+            p.poweredT = 0;
+            // only grants extra shot if this is the puck that was just shot this turn
+            if(shooterThisTurn === p.id){
+              extraShotPending = true;
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ===================== RENDER ===================== */
+  function drawTable(){
+    ctx.clearRect(0,0,W,H);
+
+    // felt gradient
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#152238');
+    g.addColorStop(1,'#0b1322');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // subtle grid
+    ctx.strokeStyle = 'rgba(40,224,255,0.05)';
+    ctx.lineWidth = 1;
+    for(let x=0;x<=W;x+=40){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    }
+    for(let y=0;y<=H;y+=40){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+
+    // center line + circle
+    ctx.strokeStyle = 'rgba(40,224,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(W/2,H/2,70,0,Math.PI*2); ctx.stroke();
+
+    // outer boundary (glowing edge = danger zone)
+    ctx.save();
+    ctx.strokeStyle = '#28e0ff';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#28e0ff';
+    ctx.shadowBlur = 14;
+    ctx.strokeRect(3,3,W-6,H-6);
+    ctx.restore();
+
+    // corner zones
+    corners.forEach(c=>{
+      ctx.save();
+      ctx.translate(c.x,c.y);
+      const pulse = 1 + Math.sin(performance.now()/500 + c.spin)*0.05;
+      ctx.scale(pulse,pulse);
+      const grad = ctx.createRadialGradient(0,0,2,0,0,CORNER_ZONE_R);
+      grad.addColorStop(0,'#ffffff');
+      grad.addColorStop(0.7,'#dfe9f2');
+      grad.addColorStop(1,'rgba(223,233,242,0.15)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(0,0,CORNER_ZONE_R,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(244,215,138,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,CORNER_ZONE_R-3,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle = '#0a1220';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('★', 0, 1);
+      ctx.restore();
+    });
+  }
+
+  function drawPuck(p){
+    if(!p.alive) return;
+    const c = COLORS[p.color];
+    const isActive = p.id === activeId && !gameOver;
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    // falling shrink/fade
+    let scale = 1, alpha = 1;
+    if(p.falling){
+      const t = p.fallT/40;
+      scale = Math.max(0, 1-t);
+      alpha = Math.max(0, 1-t);
+    }
+    ctx.globalAlpha = alpha;
+
+    // flip animation: squash horizontally to fake 3D coin flip
+    let flipScaleX = 1;
+    let showingB = p.flipResult==='B' && p.powered;
+    if(p.flipping){
+      const prog = p.flipT / p.flipDur;
+      flipScaleX = Math.cos(prog*Math.PI*6);
+      showingB = flipScaleX < 0 ? p.pendingResult : false; // flicker preview
+    }
+    ctx.scale(scale*flipScaleX===0?0.001:scale*flipScaleX, scale);
+
+    // active glow ring
+    if(isActive){
+      const pulse = 6 + Math.sin(performance.now()/180)*4;
+      ctx.save();
+      ctx.shadowColor = c.glow;
+      ctx.shadowBlur = 22+pulse;
+      ctx.beginPath();
+      ctx.arc(0,0,p.r+6,0,Math.PI*2);
+      ctx.strokeStyle = c.glow;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // powered afterglow ring (double strike token)
+    if(p.powered && !p.flipping){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(244,215,138,0.85)';
+      ctx.shadowColor = '#f4d78a';
+      ctx.shadowBlur = 16;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,p.r+11,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+
+    const absFlip = Math.abs(flipScaleX);
+
+    if(showingB){
+      // ---- Side B: metallic polished look with black circle ----
+      const grad = ctx.createRadialGradient(-p.r*0.35,-p.r*0.35, p.r*0.1, 0,0, p.r);
+      grad.addColorStop(0,'#ffffff');
+      grad.addColorStop(0.35, c.glow);
+      grad.addColorStop(0.7, c.main);
+      grad.addColorStop(1, c.dark);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
+      // metallic rim
+      ctx.strokeStyle = '#f4d78a';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0,0,p.r-1,0,Math.PI*2); ctx.stroke();
+      // black circle center
+      ctx.fillStyle = '#05070c';
+      ctx.beginPath(); ctx.arc(0,0,p.r*0.42,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(244,215,138,0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0,0,p.r*0.42,0,Math.PI*2); ctx.stroke();
+    } else {
+      // ---- Side A: normal look with subtle blur + smiley ----
+      ctx.save();
+      ctx.shadowColor = c.main;
+      ctx.shadowBlur = 8;
+      const grad = ctx.createRadialGradient(-p.r*0.3,-p.r*0.3,p.r*0.15,0,0,p.r);
+      grad.addColorStop(0, c.glow);
+      grad.addColorStop(1, c.main);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,p.r-1,0,Math.PI*2); ctx.stroke();
+
+      // simple smiley face (only when not too squashed)
+      if(absFlip > 0.55){
+        ctx.fillStyle = 'rgba(10,15,25,0.75)';
+        ctx.beginPath(); ctx.arc(-p.r*0.32,-p.r*0.12,2.6,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.r*0.32,-p.r*0.12,2.6,0,Math.PI*2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, p.r*0.05, p.r*0.38, 0.15*Math.PI, 0.85*Math.PI);
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = 'rgba(10,15,25,0.75)';
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function drawAimGuide(){
+    if(!aiming) return;
+    const p = pucks.find(pp=>pp.id===activeId);
+    if(!p || !p.alive) return;
+
+    const dx = aimStart.x - aimCurrent.x;
+    const dy = aimStart.y - aimCurrent.y;
+    let dist = Math.hypot(dx,dy);
+    dist = Math.min(dist, MAX_PULL);
+    const angle = Math.atan2(dy,dx);
+    const dirx = Math.cos(angle), diry = Math.sin(angle);
+
+    // pull-back stretch indicator
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x - dirx*dist, p.y - diry*dist);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // trajectory preview line (direction the puck will travel)
+    const power = dist/MAX_PULL;
+    const previewLen = 60 + power*260;
+    const grad = ctx.createLinearGradient(p.x,p.y, p.x+dirx*previewLen, p.y+diry*previewLen);
+    const c = COLORS[p.color];
+    grad.addColorStop(0, c.glow);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10,8]);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + dirx*previewLen, p.y + diry*previewLen);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // arrow head
+    ctx.fillStyle = c.glow;
+    const ex = p.x+dirx*previewLen, ey = p.y+diry*previewLen;
+    ctx.beginPath();
+    ctx.moveTo(ex,ey);
+    ctx.lineTo(ex - dirx*14 - diry*8, ey - diry*14 + dirx*8);
+    ctx.lineTo(ex - dirx*14 + diry*8, ey - diry*14 - dirx*8);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    // power meter UI
+    const meterWrap = document.getElementById('powerMeterWrap');
+    const meter = document.getElementById('powerMeter');
+    meterWrap.classList.add('show');
+    meter.style.width = (power*100)+'%';
+  }
+
+  function render(){
+    drawTable();
+    pucks.forEach(drawPuck);
+    drawAimGuide();
+  }
+
+  /* ===================== INPUT ===================== */
+  function getCanvasPos(evt){
+    const rect = canvas.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    const scaleX = W/rect.width, scaleY = H/rect.height;
+    return { x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY };
+  }
+
+  function canAim(){
+    if(gameOver || awaitingSettle) return false;
+    const p = pucks.find(pp=>pp.id===activeId);
+    return p && p.alive && !p.flipping;
+  }
+
+  function onDown(evt){
+    if(!canAim()) return;
+    evt.preventDefault();
+    const pos = getCanvasPos(evt);
+    aiming = true;
+    aimStart = pos;
+    aimCurrent = pos;
+  }
+  function onMove(evt){
+    if(!aiming) return;
+    evt.preventDefault();
+    aimCurrent = getCanvasPos(evt);
+  }
+  function onUp(evt){
+    if(!aiming) return;
+    evt.preventDefault();
+    aiming = false;
+    document.getElementById('powerMeterWrap').classList.remove('show');
+
+    const p = pucks.find(pp=>pp.id===activeId);
+    if(!p) return;
+    const dx = aimStart.x - aimCurrent.x;
+    const dy = aimStart.y - aimCurrent.y;
+    let dist = Math.hypot(dx,dy);
+    if(dist < 8) return; // too small a flick, ignore
+    dist = Math.min(dist, MAX_PULL);
+    const angle = Math.atan2(dy,dx);
+    const power = dist * POWER_SCALE;
+    p.vx = Math.cos(angle)*power*10;
+    p.vy = Math.sin(angle)*power*10;
+
+    shooterThisTurn = p.id;
+    awaitingSettle = true;
+  }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', onUp, {passive:false});
+
+  /* ===================== MAIN LOOP ===================== */
+  function loop(){
+    if(!gameOver){
+      stepPhysics();
+      stepFlips();
+
+      if(awaitingSettle && allSettled()){
+        awaitingSettle = false;
+        shooterThisTurn = null;
+        nextTurn();
+      }
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  /* ===================== UI WIRING ===================== */
+  document.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      mode = btn.dataset.mode;
+    });
+  });
+
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    document.getElementById('startOverlay').classList.add('hidden');
+    resetGame();
+  });
+
+  document.getElementById('playAgainBtn').addEventListener('click', ()=>{
+    document.getElementById('winOverlay').classList.add('hidden');
+    document.getElementById('startOverlay').classList.remove('hidden');
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    document.getElementById('winOverlay').classList.add('hidden');
+    resetGame();
+  });
+
+  /* responsive canvas sizing */
+  function fitCanvas(){
+    const wrap = document.getElementById('tableWrap');
+    const maxW = Math.min(window.innerWidth*0.94, 920) - 52;
+    const maxH = window.innerHeight*0.62;
+    const ratio = W/H;
+    let w = maxW, h = w/ratio;
+    if(h > maxH){ h = maxH; w = h*ratio; }
+    canvas.style.width = w+'px';
+    canvas.style.height = h+'px';
+  }
+  window.addEventListener('resize', fitCanvas);
+  fitCanvas();
+
+  initCorners();
+  pucks = [
+    makePuck('red','red', W*0.5, H*0.18),
+    makePuck('green','green', W*0.25, H*0.82),
+    makePuck('yellow','yellow', W*0.75, H*0.82)
+  ];
+  updateHUD();
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
