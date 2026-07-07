@@ -49,7 +49,7 @@
     padding:10px;
   }
 
-  /* ---------- TOP BAR (Room menu + Info) ---------- */
+  /* ---------- TOP BAR (Info) ---------- */
   #topBar{
     position:fixed; top:0; left:0; right:0;
     z-index:70;
@@ -93,41 +93,7 @@
     display:flex; align-items:center; justify-content:center;
     font-size:14px;
   }
-  .room-menu{ position:relative; }
-  .dropdown{
-    position:absolute; top:calc(100% + 8px); right:0;
-    min-width:190px;
-    background:linear-gradient(180deg,#101c30,#0a1220);
-    border:1px solid #2a4666;
-    border-radius:8px;
-    padding:10px;
-    display:flex; flex-direction:column; gap:8px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(40,224,255,0.15);
-    z-index:80;
-  }
   .hidden{ display:none !important; }
-  .dropdown.hidden{ display:none; }
-  .dropdown button{
-    width:100%;
-  }
-  .dropdown .join-row{
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .dropdown input{
-    font-family:inherit;
-    background:#0a1220;
-    border:1px solid #2a4666;
-    color:var(--ink);
-    border-radius:4px;
-    padding:8px;
-    font-size:14px;
-    letter-spacing:3px;
-    text-align:center;
-    text-transform:uppercase;
-  }
-  .dropdown .net-note{
-    font-size:8.5px; color:var(--dim); letter-spacing:0.5px; line-height:1.4;
-  }
 
   /* ---------- HUD ---------- */
   #hud{
@@ -315,18 +281,6 @@
     color:var(--gold) !important;
   }
 
-  #lobbyCodeDisplay{ letter-spacing:6px; }
-  #lobbyPlayerList{
-    display:flex; flex-direction:column; gap:6px; margin-bottom:20px;
-  }
-  .lobby-slot{
-    font-size:11px; letter-spacing:1px; padding:8px 10px;
-    background:linear-gradient(180deg,#0e1a2c,#0a1320);
-    border:1px solid #22384f; border-radius:6px;
-    text-align:left;
-  }
-  .lobby-slot.you{ border-color: var(--line-cyan); }
-
   @media (max-width:600px){
     #hud{ font-size:9px; flex-wrap:wrap; }
     .hud-block{ font-size:9px; padding:5px 8px; }
@@ -341,18 +295,6 @@
   <div class="topbar-inner">
     <div class="brand">MAGNETIC <span>CLASH</span></div>
     <div class="topbar-actions">
-      <div class="room-menu">
-        <button class="neon-btn" id="roomBtn">⚡ Room</button>
-        <div class="dropdown hidden" id="roomDropdown">
-          <button id="makeRoomBtn">🛠 Make Room</button>
-          <button id="joinRoomBtnToggle">🔑 Join Room</button>
-          <div class="join-row hidden" id="joinRow">
-            <input id="joinCodeInput" maxlength="4" inputmode="numeric" placeholder="0000">
-            <button class="primary" id="joinConnectBtn">Connect</button>
-          </div>
-          <div class="net-note">Room sync uses this browser's local channel — open a second tab to test. Swap in Socket.io/Firebase for real cross-device play.</div>
-        </div>
-      </div>
       <button class="neon-btn round" id="infoBtn" title="How to play">?</button>
     </div>
   </div>
@@ -438,114 +380,10 @@
       <li class="info-power"><b>★ Power-up:</b> land on the corner coins to power up and hit harder until your next flip!</li>
       <li><b>Teams:</b> in Teams mode, active magnets are randomly split into two sides — reshuffled every match.</li>
       <li><b>Hazards:</b> toggle Obstacles or the Gravitational Well on the home screen for extra chaos — neither ever blocks the corner coins.</li>
-      <li><b>Online Room:</b> use the ⚡ Room menu to host or join a match with a 4-digit code.</li>
     </ul>
     <button class="primary" id="infoCloseBtn" style="width:100%; padding:12px;">GOT IT</button>
   </div>
 </div>
-
-<!-- LOBBY OVERLAY -->
-<div class="overlay hidden" id="lobbyOverlay">
-  <div class="panel">
-    <div class="title">ROOM <span id="lobbyCodeDisplay">----</span></div>
-    <div class="subtitle" id="lobbyStatus">waiting for players...</div>
-    <div class="subtitle" id="lobbyMatchSize" style="color:var(--gold); margin-top:-14px;">—</div>
-    <div id="lobbyPlayerList"></div>
-    <button class="primary" id="lobbyStartBtn" style="width:100%; padding:14px; font-size:13px; margin-bottom:10px;">START MATCH</button>
-    <div id="lobbyWaitNote" class="subtitle hidden" style="margin:0 0 10px 0;">waiting for the host to start...</div>
-    <button id="lobbyCancelBtn" style="width:100%; padding:10px;">Leave Room</button>
-  </div>
-</div>
-
-<!-- ===================== FIREBASE SETUP =====================
-     1. Create a project at https://console.firebase.google.com
-     2. Build -> Realtime Database -> Create Database (test mode is fine to start)
-     3. Project settings -> General -> Your apps -> Web app -> copy the config
-     4. Paste your config into firebaseConfig below.
-     Rooms live at /rooms/{code} and clean themselves up automatically:
-     onDisconnect() removes a player's presence entry the moment their tab/
-     browser closes or their connection drops, and the last player leaving
-     deletes the whole room node so codes don't pile up forever. -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-  import {
-    getDatabase, ref, push, onChildAdded, onDisconnect, onValue,
-    set, remove, query, orderByChild, startAfter, serverTimestamp, get
-  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCy0WOor49pSo8ihSX02VTHpdNojs9trcw",
-    authDomain: "magnetic-clash.firebaseapp.com",
-    databaseURL: "https://magnetic-clash-default-rtdb.firebaseio.com",
-    projectId: "magnetic-clash",
-    storageBucket: "magnetic-clash.firebasestorage.app",
-    messagingSenderId: "522075075855",
-    appId: "1:522075075855:web:4d5870bb7de804d0137a7a"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // Small adapter exposed on window so the classic <script> below (which
-  // holds all the game logic) can drive Firebase without needing to become
-  // a module itself. Mirrors the shape netInit/netBroadcast already expect.
-  window.FBRooms = {
-    // returns a "channel-like" object with .close(), matching what the
-    // game code already calls on netChannel
-    join(code, onMessage, onPresenceChange){
-      const clientId = Math.random().toString(36).slice(2);
-      const joinedAt = Date.now();
-      const msgsRef = ref(db, `rooms/${code}/messages`);
-      const presenceRef = ref(db, `rooms/${code}/presence/${clientId}`);
-      const presenceRootRef = ref(db, `rooms/${code}/presence`);
-      const roomRef = ref(db, `rooms/${code}`);
-
-      // mark ourselves present, and auto-remove if we disconnect
-      // (tab closed, browser crashed, network dropped, etc.)
-      set(presenceRef, true);
-      onDisconnect(presenceRef).remove();
-      // if we're the last one out, delete the whole room so old codes
-      // don't linger in the database forever
-      onDisconnect(roomRef).remove();
-
-      // Player count comes from the LIVE presence list, not from counting
-      // "hello" messages — a message-counted total only ever goes up, so a
-      // refresh or a dropped connection left phantom players on screen.
-      // This listener fires immediately with the current list, and again
-      // every time someone joins or leaves (including automatic removal
-      // via onDisconnect), so every device converges on the same number.
-      const unsubPresence = onValue(presenceRootRef, (snap)=>{
-        const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-        if(onPresenceChange) onPresenceChange(count);
-      });
-
-      // only react to messages sent AFTER we joined, so we don't replay
-      // the whole room history the moment we connect
-      const liveQuery = query(msgsRef, orderByChild('_t'), startAfter(joinedAt));
-      const unsubscribe = onChildAdded(liveQuery, (snap)=>{
-        const msg = snap.val();
-        if(msg && msg._from !== clientId) onMessage(msg);
-      });
-
-      return {
-        close(){
-          unsubscribe();
-          unsubPresence();
-          remove(presenceRef);
-          onDisconnect(presenceRef).cancel();
-          onDisconnect(roomRef).cancel();
-          // if no one else is left, clean up the room's message log too
-          get(presenceRootRef).then(snap=>{
-            if(!snap.exists()) remove(roomRef);
-          });
-        },
-        send(msg){
-          push(msgsRef, Object.assign({}, msg, { _from: clientId, _t: serverTimestamp() }));
-        }
-      };
-    }
-  };
-</script>
 
 <script>
 (function(){
@@ -558,10 +396,8 @@
   const MIN_SPEED = 0.045;
   // Physics used to advance once per requestAnimationFrame call, so a
   // 120Hz display ran the simulation twice as fast (in real time) as a
-  // 60Hz display. Across a networked match that meant two screens watching
-  // the *same* launch drift apart in position, timing of the coin-flip
-  // zones, and therefore whose turn it was next. Stepping physics on a
-  // fixed real-time clock (below, in loop()) makes every device simulate
+  // 60Hz display. Stepping physics on a fixed real-time clock (below, in
+  // loop()) makes every device simulate
   // at the same rate regardless of its screen's refresh rate.
   const FIXED_DT_MS = 1000/60;
   const MAGNET_RANGE = 170;
@@ -719,11 +555,7 @@
     return teams.A.includes(id) ? 'A' : 'B';
   }
 
-  // `preset`, when provided (used when a networked room's host broadcasts the
-  // match to guests), forces this client to build the EXACT same match —
-  // same player count, mode, hazards, obstacle layout, spawn points, and
-  // turn order — instead of rolling its own random settings/positions.
-  function resetGame(preset){
+  function resetGame(){
     gameOver = false;
     awaitingSettle = false;
     aiming = false;
@@ -731,53 +563,28 @@
     shakeMag = 0;
     initCorners();
 
-    if(preset){
-      playerCount = preset.playerCount;
-      mode = preset.mode;
-      hazardObstacles = preset.hazardObstacles;
-      hazardWell = preset.hazardWell;
-      activeColors = preset.activeColors.slice();
-      obstacles = preset.obstacles.map(o=>({...o}));
-      teams = preset.teams ? { A: preset.teams.A.slice(), B: preset.teams.B.slice() } : { A:[], B:[] };
-      pucks = preset.pucks.map(pp => makePuck(pp.id, pp.color, pp.x, pp.y));
-      turnOrder = preset.turnOrder.slice();
-    } else {
-      activeColors = COLOR_POOL.slice(0, playerCount);
-      initObstacles();
+    activeColors = COLOR_POOL.slice(0, playerCount);
+    initObstacles();
 
-      if(mode === 'teams'){
-        teams = assignTeams(activeColors);
-      }
-
-      // spawn every active color at a fresh random spot each match
-      const placed = [];
-      pucks = activeColors.map(color=>{
-        const pos = randomSpawnPoint(placed);
-        placed.push(pos);
-        return makePuck(color, color, pos.x, pos.y);
-      });
-
-      turnOrder = shuffle(activeColors);
+    if(mode === 'teams'){
+      teams = assignTeams(activeColors);
     }
+
+    // spawn every active color at a fresh random spot each match
+    const placed = [];
+    pucks = activeColors.map(color=>{
+      const pos = randomSpawnPoint(placed);
+      placed.push(pos);
+      return makePuck(color, color, pos.x, pos.y);
+    });
+
+    turnOrder = shuffle(activeColors);
 
     turnIndex = 0;
     activeId = turnOrder[0];
     buildRoster();
     buildLegend();
     updateHUD();
-  }
-
-  // Captures everything a guest screen needs to build an identical match —
-  // called by the host right after it rolls its own resetGame().
-  function buildMatchSnapshot(){
-    return {
-      playerCount, mode, hazardObstacles, hazardWell,
-      activeColors: activeColors.slice(),
-      obstacles: obstacles.map(o=>({x:o.x, y:o.y, r:o.r, spin:o.spin})),
-      teams: mode==='teams' ? { A: teams.A.slice(), B: teams.B.slice() } : null,
-      pucks: pucks.map(p=>({ id:p.id, color:p.color, x:p.x, y:p.y })),
-      turnOrder: turnOrder.slice()
-    };
   }
 
   function buildRoster(){
@@ -1107,25 +914,12 @@
   function triggerFlip(p){
     p.flipping = true;
     p.flipT = 0;
-    // In a networked room, only the host rolls the coin — guests wait for
-    // the host's 'flip' broadcast instead of rolling their own. Both sides
-    // independently detecting the corner zone and each rolling Math.random()
-    // was producing two different outcomes for the same flip (this was part
-    // of the "different movement" desync bug).
-    if(netChannel && !netIsHost){
-      p.pendingResult = null; // filled in shortly by handleNetMessage
-      return;
-    }
-    const success = Math.random() < 0.5;
-    p.pendingResult = success;
-    // broadcast the flip outcome to any connected room so all screens agree
-    netBroadcast({ type:'flip', puckId:p.id, pendingResult: success });
+    p.pendingResult = Math.random() < 0.5;
   }
 
   function stepFlips(){
     pucks.forEach(p=>{
       if(p.flipping){
-        if(p.pendingResult === null) return; // guest still waiting on host's roll
         p.flipT += FIXED_DT_MS;
         if(p.flipT >= p.flipDur){
           p.flipping = false;
@@ -1477,8 +1271,6 @@
     const power = dist * POWER_SCALE;
 
     launchPuck(p.id, angle, power);
-    // broadcast the launch vector so every connected screen simulates it identically
-    netBroadcast({ type:'launch', puckId:p.id, angle, power });
   }
 
   canvas.addEventListener('mousedown', onDown);
@@ -1576,13 +1368,7 @@
 
   document.getElementById('playAgainBtn').addEventListener('click', ()=>{
     document.getElementById('winOverlay').classList.add('hidden');
-    if(netRoomCode){
-      // still connected to a room — go back to the lobby so the host can
-      // start the next round in sync, rather than each screen picking again
-      showLobby(netRoomCode);
-    } else {
-      document.getElementById('startOverlay').classList.remove('hidden');
-    }
+    document.getElementById('startOverlay').classList.remove('hidden');
   });
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
@@ -1590,23 +1376,14 @@
     resetGame();
   });
 
-  /* Exit — works from FFA, Teams, or a Room match alike: stop the current
-     match, leave any active room connection, and return to the main menu */
+  /* Exit — works from FFA or Teams alike: stop the current match and
+     return to the main menu */
   document.getElementById('exitBtn').addEventListener('click', ()=>{
     gameOver = true;
     aiming = false;
     awaitingSettle = false;
     document.getElementById('powerMeterWrap').classList.remove('show');
     document.getElementById('winOverlay').classList.add('hidden');
-    document.getElementById('lobbyOverlay').classList.add('hidden');
-    if(netChannel){
-      netBroadcast({ type:'playerLeft' });
-      netChannel.close();
-      netChannel = null;
-    }
-    netRoomCode = null;
-    netIsHost = false;
-    netPlayers = 1;
     document.getElementById('startOverlay').classList.remove('hidden');
   });
 
@@ -1616,180 +1393,6 @@
   });
   document.getElementById('infoCloseBtn').addEventListener('click', ()=>{
     document.getElementById('infoOverlay').classList.add('hidden');
-  });
-
-  /* ---- Room dropdown ---- */
-  const roomBtn = document.getElementById('roomBtn');
-  const roomDropdown = document.getElementById('roomDropdown');
-  const joinRow = document.getElementById('joinRow');
-  roomBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    roomDropdown.classList.toggle('hidden');
-  });
-  document.addEventListener('click', (e)=>{
-    if(!roomDropdown.contains(e.target) && e.target !== roomBtn){
-      roomDropdown.classList.add('hidden');
-      joinRow.classList.add('hidden');
-    }
-  });
-
-  document.getElementById('joinRoomBtnToggle').addEventListener('click', ()=>{
-    joinRow.classList.toggle('hidden');
-  });
-
-  /* ===================== NETWORKING (Room system) =====================
-     Backed by Firebase Realtime Database (see the FBRooms adapter defined
-     in the module script above), so rooms now reach any device on any
-     network — not just tabs on the same browser. The rest of the game
-     (launchPuck, triggerFlip broadcast, handleNetMessage, etc.) is
-     unchanged: it still just calls netInit/netBroadcast. */
-  let netChannel = null;
-  let netRoomCode = null;
-  let netIsHost = false;
-  let netPlayers = 1;
-
-  function makeRoomCode(){
-    return String(Math.floor(1000 + Math.random()*9000));
-  }
-
-  function netInit(code, asHost){
-    if(netChannel) netChannel.close();
-    netRoomCode = code;
-    netIsHost = asHost;
-    netPlayers = 1;
-    if(window.FBRooms){
-      // Player count is driven by the live presence listener (source of
-      // truth = who's actually connected right now), not by counting
-      // "hello" chat messages — that old scheme only ever went up, so a
-      // refresh or dropped connection left stale players on the count.
-      netChannel = window.FBRooms.join(code, handleNetMessage, (count)=>{
-        netPlayers = Math.min(Math.max(count, 1), 6);
-        renderLobbyPlayers();
-      });
-    } else {
-      console.error('Firebase not loaded — check your firebaseConfig and network connection.');
-    }
-  }
-
-  function netBroadcast(msg){
-    if(netChannel) netChannel.send(msg);
-  }
-
-  function handleNetMessage(msg){
-    if(!msg) return;
-    if(msg.type === 'launch'){
-      launchPuck(msg.puckId, msg.angle, msg.power);
-    } else if(msg.type === 'flip'){
-      const p = pucks.find(pp=>pp.id===msg.puckId);
-      if(p){
-        // Fill in the host's authoritative result. Don't reset flipT if this
-        // client already started the flip animation locally (from its own
-        // physics detecting the corner zone) — restarting it here used to
-        // desync the flip timer between host and guest.
-        if(!p.flipping){ p.flipping = true; p.flipT = 0; }
-        p.pendingResult = msg.pendingResult;
-      }
-    } else if(msg.type === 'startMatch'){
-      document.getElementById('lobbyOverlay').classList.add('hidden');
-      document.getElementById('startOverlay').classList.add('hidden');
-      // apply the HOST's exact settings/positions so every screen matches —
-      // this is the fix: player count, mode, and hazards now come from the
-      // host instead of each device's own local menu selection
-      resetGame(msg.config);
-    }
-  }
-
-  function renderLobbyPlayers(){
-    const list = document.getElementById('lobbyPlayerList');
-    list.innerHTML = '';
-    for(let i=1;i<=Math.max(netPlayers,1);i++){
-      const slot = document.createElement('div');
-      slot.className = 'lobby-slot' + (i===1 && netIsHost ? ' you' : '');
-      slot.textContent = (i===1 && netIsHost) ? 'Player 1 (You — Host)' : 'Player '+i;
-      list.appendChild(slot);
-    }
-    document.getElementById('lobbyStatus').textContent =
-      netPlayers >= 2 ? netPlayers+' players connected' : 'Waiting for players...';
-
-    // the match ALWAYS uses however many players actually joined — this
-    // readout is the source of truth, not the main-menu player-count row
-    const matchSize = Math.max(2, Math.min(6, netPlayers));
-    const sizeNote = document.getElementById('lobbyMatchSize');
-    sizeNote.textContent = netPlayers < 2
-      ? 'need at least 1 more player to start'
-      : `match will use ${matchSize} player${matchSize>1?'s':''} (${netPlayers} connected)`;
-  }
-
-  // Guests don't pick their own mode/hazards — the host's choices win, so
-  // we lock those out while connected as a guest.
-  function setLocalSettingsLocked(locked){
-    document.querySelectorAll('.mode-btn').forEach(b=> b.disabled = locked);
-    document.getElementById('obstacleToggle').disabled = locked;
-    document.getElementById('wellToggle').disabled = locked;
-  }
-  // The player-count row never applies once you're in a room — match size
-  // is always however many people actually joined, not a manual pick — so
-  // this locks for BOTH host and guest while a room is open.
-  function setCountRowLocked(locked){
-    document.querySelectorAll('.count-btn').forEach(b=> b.disabled = locked);
-  }
-
-  function showLobby(code){
-    document.getElementById('lobbyCodeDisplay').textContent = code;
-    renderLobbyPlayers();
-    document.getElementById('lobbyStartBtn').classList.toggle('hidden', !netIsHost);
-    document.getElementById('lobbyWaitNote').classList.toggle('hidden', netIsHost);
-    document.getElementById('lobbyOverlay').classList.remove('hidden');
-    roomDropdown.classList.add('hidden');
-    joinRow.classList.add('hidden');
-  }
-
-  document.getElementById('makeRoomBtn').addEventListener('click', ()=>{
-    const code = makeRoomCode();
-    netInit(code, true);
-    setLocalSettingsLocked(false); // host's own mode/hazard selections are the source of truth
-    setCountRowLocked(true);       // player count is now driven by who actually joins
-    showLobby(code);
-  });
-
-  document.getElementById('joinConnectBtn').addEventListener('click', ()=>{
-    const input = document.getElementById('joinCodeInput');
-    const code = input.value.trim();
-    if(!/^\d{4}$/.test(code)){
-      input.style.borderColor = 'var(--red)';
-      return;
-    }
-    input.style.borderColor = '';
-    netInit(code, false);
-    setLocalSettingsLocked(true); // guest — host controls mode/hazards
-    setCountRowLocked(true);      // player count is driven by who actually joins
-    showLobby(code);
-  });
-
-  document.getElementById('lobbyStartBtn').addEventListener('click', ()=>{
-    if(!netIsHost) return; // only the host can start — guests wait for the broadcast
-    if(netPlayers < 2){
-      // not enough real players connected yet — flash the readout instead of starting
-      const note = document.getElementById('lobbyMatchSize');
-      note.style.color = 'var(--red)';
-      setTimeout(()=>{ note.style.color = 'var(--gold)'; }, 500);
-      return;
-    }
-    // force the match size to match how many people ACTUALLY joined —
-    // this overrides whatever was pre-selected on the main menu
-    playerCount = Math.max(2, Math.min(6, netPlayers));
-    document.getElementById('lobbyOverlay').classList.add('hidden');
-    document.getElementById('startOverlay').classList.add('hidden');
-    resetGame(); // host rolls the real match: settings, obstacles, spawns, turn order
-    netBroadcast({ type:'startMatch', config: buildMatchSnapshot() });
-  });
-
-  document.getElementById('lobbyCancelBtn').addEventListener('click', ()=>{
-    if(netChannel){ netChannel.close(); netChannel = null; }
-    netRoomCode = null;
-    setLocalSettingsLocked(false);
-    setCountRowLocked(false);
-    document.getElementById('lobbyOverlay').classList.add('hidden');
   });
 
   /* responsive canvas sizing */
