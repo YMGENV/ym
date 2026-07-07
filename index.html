@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -469,7 +469,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import {
-    getDatabase, ref, push, onChildAdded, onDisconnect,
+    getDatabase, ref, push, onChildAdded, onDisconnect, onValue,
     set, remove, query, orderByChild, startAfter, serverTimestamp, get
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
@@ -492,7 +492,7 @@
   window.FBRooms = {
     // returns a "channel-like" object with .close(), matching what the
     // game code already calls on netChannel
-    join(code, onMessage){
+    join(code, onMessage, onPresenceChange){
       const clientId = Math.random().toString(36).slice(2);
       const joinedAt = Date.now();
       const msgsRef = ref(db, `rooms/${code}/messages`);
@@ -508,20 +508,29 @@
       // don't linger in the database forever
       onDisconnect(roomRef).remove();
 
+      // Player count comes from the LIVE presence list, not from counting
+      // "hello" messages — a message-counted total only ever goes up, so a
+      // refresh or a dropped connection left phantom players on screen.
+      // This listener fires immediately with the current list, and again
+      // every time someone joins or leaves (including automatic removal
+      // via onDisconnect), so every device converges on the same number.
+      const unsubPresence = onValue(presenceRootRef, (snap)=>{
+        const count = snap.exists() ? Object.keys(snap.val()).length : 0;
+        if(onPresenceChange) onPresenceChange(count);
+      });
+
       // only react to messages sent AFTER we joined, so we don't replay
-      // the whole room history (e.g. an old "hello") the moment we connect
+      // the whole room history the moment we connect
       const liveQuery = query(msgsRef, orderByChild('_t'), startAfter(joinedAt));
       const unsubscribe = onChildAdded(liveQuery, (snap)=>{
         const msg = snap.val();
         if(msg && msg._from !== clientId) onMessage(msg);
       });
 
-      // announce ourselves to everyone already in the room
-      push(msgsRef, { type:'hello', _from: clientId, _t: serverTimestamp() });
-
       return {
         close(){
           unsubscribe();
+          unsubPresence();
           remove(presenceRef);
           onDisconnect(presenceRef).cancel();
           onDisconnect(roomRef).cancel();
@@ -1611,7 +1620,14 @@
     netIsHost = asHost;
     netPlayers = 1;
     if(window.FBRooms){
-      netChannel = window.FBRooms.join(code, handleNetMessage);
+      // Player count is driven by the live presence listener (source of
+      // truth = who's actually connected right now), not by counting
+      // "hello" chat messages — that old scheme only ever went up, so a
+      // refresh or dropped connection left stale players on the count.
+      netChannel = window.FBRooms.join(code, handleNetMessage, (count)=>{
+        netPlayers = Math.min(Math.max(count, 1), 6);
+        renderLobbyPlayers();
+      });
     } else {
       console.error('Firebase not loaded — check your firebaseConfig and network connection.');
     }
@@ -1623,18 +1639,7 @@
 
   function handleNetMessage(msg){
     if(!msg) return;
-    if(msg.type === 'hello'){
-      // count every real join — capped only by the color pool (max 6),
-      // NEVER by whatever number was pre-selected on the menu. That cap was
-      // the bug: it made the match spawn a puck for nobody when fewer
-      // people actually joined than the host had pre-selected.
-      netPlayers = Math.min(netPlayers+1, 6);
-      renderLobbyPlayers();
-      netBroadcast({ type:'roster', count:netPlayers });
-    } else if(msg.type === 'roster'){
-      netPlayers = msg.count;
-      renderLobbyPlayers();
-    } else if(msg.type === 'launch'){
+    if(msg.type === 'launch'){
       launchPuck(msg.puckId, msg.angle, msg.power);
     } else if(msg.type === 'flip'){
       const p = pucks.find(pp=>pp.id===msg.puckId);
@@ -1762,4 +1767,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
