@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -16,6 +16,12 @@
     --green-glow:#a3ffce;
     --yellow:#ffd23f;
     --yellow-glow:#fff2b0;
+    --purple:#b24bff;
+    --purple-glow:#dcb3ff;
+    --pink:#ff5fc4;
+    --pink-glow:#ffc2ec;
+    --blue:#3fa9ff;
+    --blue-glow:#b3ddff;
     --ink:#eaf6ff;
     --dim:#5c7796;
     --gold:#f4d78a;
@@ -43,35 +49,111 @@
     padding:10px;
   }
 
+  /* ---------- TOP BAR (Room menu + Info) ---------- */
+  #topBar{
+    position:fixed; top:0; left:0; right:0;
+    z-index:70;
+    display:flex; justify-content:center;
+    padding:10px 12px;
+    pointer-events:none;
+  }
+  #topBar .topbar-inner{
+    width:min(94vw, 920px);
+    display:flex; align-items:center; justify-content:space-between;
+    pointer-events:none;
+  }
+  #topBar .brand{
+    font-size:12px; letter-spacing:3px; font-weight:bold; color:var(--ink);
+    text-shadow:0 0 10px var(--line-cyan);
+    pointer-events:none;
+  }
+  #topBar .brand span{ color:var(--line-cyan); }
+  #topBar .topbar-actions{
+    display:flex; align-items:center; gap:8px;
+    pointer-events:all;
+  }
+  .neon-btn{
+    font-family:inherit; letter-spacing:1.5px; text-transform:uppercase;
+    cursor:pointer;
+    background:linear-gradient(180deg,#16243b,#0a121f);
+    color:var(--line-cyan);
+    border:1px solid #2a4666;
+    border-radius:6px;
+    padding:9px 14px;
+    font-size:11px;
+    font-weight:bold;
+    box-shadow:0 0 10px rgba(40,224,255,0.15);
+    transition:transform .08s ease, box-shadow .15s ease;
+  }
+  .neon-btn:hover{ box-shadow:0 0 16px rgba(40,224,255,0.4); }
+  .neon-btn:active{ transform:scale(0.95); }
+  .neon-btn.round{
+    width:32px; height:32px; padding:0;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .room-menu{ position:relative; }
+  .dropdown{
+    position:absolute; top:calc(100% + 8px); right:0;
+    min-width:190px;
+    background:linear-gradient(180deg,#101c30,#0a1220);
+    border:1px solid #2a4666;
+    border-radius:8px;
+    padding:10px;
+    display:flex; flex-direction:column; gap:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(40,224,255,0.15);
+    z-index:80;
+  }
+  .hidden{ display:none !important; }
+  .dropdown.hidden{ display:none; }
+  .dropdown button{
+    width:100%;
+  }
+  .dropdown .join-row{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .dropdown input{
+    font-family:inherit;
+    background:#0a1220;
+    border:1px solid #2a4666;
+    color:var(--ink);
+    border-radius:4px;
+    padding:8px;
+    font-size:14px;
+    letter-spacing:3px;
+    text-align:center;
+    text-transform:uppercase;
+  }
+  .dropdown .net-note{
+    font-size:8.5px; color:var(--dim); letter-spacing:0.5px; line-height:1.4;
+  }
+
   /* ---------- HUD ---------- */
   #hud{
     width:min(94vw, 920px);
     display:flex; align-items:center; justify-content:space-between;
     gap:8px;
     letter-spacing:1px;
+    margin-top:34px;
   }
   .hud-block{
-    display:flex; align-items:center; gap:8px;
+    display:flex; align-items:center; gap:6px;
     font-size:11px;
     padding:6px 10px;
     background:linear-gradient(180deg,#0f1a2c,#0a1320);
     border:1px solid #1f3350;
     border-radius:4px;
     box-shadow: inset 0 0 12px rgba(40,224,255,0.06);
+    flex-wrap:wrap;
   }
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0;}
-  .dot.red{background:var(--red); box-shadow:0 0 6px var(--red);}
-  .dot.green{background:var(--green); box-shadow:0 0 6px var(--green);}
-  .dot.yellow{background:var(--yellow); box-shadow:0 0 6px var(--yellow);}
   .dot.dead{background:#2a2a2a !important; box-shadow:none !important; opacity:.4;}
   #turnLabel{
     font-size:12px; font-weight:bold; letter-spacing:2px;
     text-transform:uppercase;
     text-shadow:0 0 8px currentColor;
   }
-  #turnLabel.red{color:var(--red);}
-  #turnLabel.green{color:var(--green);}
-  #turnLabel.yellow{color:var(--yellow);}
 
   button{
     font-family:inherit; letter-spacing:1px; text-transform:uppercase;
@@ -87,6 +169,7 @@
   }
   button:hover{ box-shadow:0 0 12px rgba(40,224,255,0.35); }
   button:active{ transform:scale(0.95); }
+  button:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none !important; transform:none !important; }
   button.primary{
     color:#04141a;
     background:linear-gradient(180deg, #4be8ff, #16b8d6);
@@ -124,6 +207,8 @@
   .overlay.hidden{display:none;}
   .panel{
     width:min(92vw, 460px);
+    max-height:90vh;
+    overflow-y:auto;
     background:linear-gradient(180deg,#101c30,#0a1220);
     border:1px solid #24405f;
     border-radius:10px;
@@ -145,7 +230,7 @@
     text-transform:uppercase;
   }
   .mode-row{
-    display:flex; flex-direction:column; gap:10px; margin-bottom:20px;
+    display:flex; flex-direction:column; gap:10px; margin-bottom:18px;
   }
   .mode-btn{
     width:100%; padding:14px 10px; font-size:12px;
@@ -162,7 +247,38 @@
     border-color: var(--line-cyan);
     box-shadow:0 0 16px rgba(40,224,255,0.25);
   }
-  .legend-row{ display:flex; justify-content:center; gap:16px; margin-bottom:20px; font-size:10px; color:var(--dim);}
+
+  .section-label{
+    font-size:10px; color:var(--dim); letter-spacing:2px; text-align:left;
+    margin-bottom:8px; text-transform:uppercase;
+  }
+  .player-count-row{
+    display:flex; gap:6px; margin-bottom:18px;
+  }
+  .count-btn{
+    flex:1; padding:10px 0; font-size:13px; font-weight:bold;
+    border-radius:6px;
+  }
+  .count-btn.selected{
+    color:#04141a;
+    background:linear-gradient(180deg, #4be8ff, #16b8d6);
+    border:1px solid #7cf3ff;
+  }
+  .hazard-row{
+    display:flex; flex-direction:column; gap:8px; margin-bottom:18px;
+    text-align:left;
+  }
+  .hazard-row label{
+    display:flex; align-items:center; gap:8px;
+    font-size:10.5px; letter-spacing:1px; color:var(--ink);
+    background:linear-gradient(180deg,#0e1a2c,#0a1320);
+    border:1px solid #22384f;
+    border-radius:6px;
+    padding:9px 10px;
+  }
+  .hazard-row input{ width:15px; height:15px; accent-color: var(--line-cyan); }
+
+  .legend-row{ display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-bottom:20px; font-size:10px; color:var(--dim);}
   .legend-row .dot{width:9px;height:9px;}
 
   #winPanel .title{ font-size: clamp(20px,7vw,30px); }
@@ -185,31 +301,75 @@
     transition:width .04s linear;
   }
 
-  .footer-note{
-    font-size:9px; color:var(--dim); letter-spacing:1px; text-align:center; max-width:600px;
+  .info-list{
+    text-align:left;
+    font-size:11.5px;
+    line-height:1.7;
+    color:var(--ink);
+    margin:0 0 20px 0;
+    padding-left:18px;
   }
+  .info-list li{ margin-bottom:10px; }
+  .info-list b{ color:var(--line-cyan); }
+  .info-power{
+    color:var(--gold) !important;
+  }
+
+  #lobbyCodeDisplay{ letter-spacing:6px; }
+  #lobbyPlayerList{
+    display:flex; flex-direction:column; gap:6px; margin-bottom:20px;
+  }
+  .lobby-slot{
+    font-size:11px; letter-spacing:1px; padding:8px 10px;
+    background:linear-gradient(180deg,#0e1a2c,#0a1320);
+    border:1px solid #22384f; border-radius:6px;
+    text-align:left;
+  }
+  .lobby-slot.you{ border-color: var(--line-cyan); }
 
   @media (max-width:600px){
     #hud{ font-size:9px; flex-wrap:wrap; }
     .hud-block{ font-size:9px; padding:5px 8px; }
     #tableWrap{ padding:14px; }
+    #topBar .brand{ font-size:10px; }
   }
 </style>
 </head>
 <body>
+
+<div id="topBar">
+  <div class="topbar-inner">
+    <div class="brand">MAGNETIC <span>CLASH</span></div>
+    <div class="topbar-actions">
+      <div class="room-menu">
+        <button class="neon-btn" id="roomBtn">⚡ Room</button>
+        <div class="dropdown hidden" id="roomDropdown">
+          <button id="makeRoomBtn">🛠 Make Room</button>
+          <button id="joinRoomBtnToggle">🔑 Join Room</button>
+          <div class="join-row hidden" id="joinRow">
+            <input id="joinCodeInput" maxlength="4" inputmode="numeric" placeholder="0000">
+            <button class="primary" id="joinConnectBtn">Connect</button>
+          </div>
+          <div class="net-note">Room sync uses this browser's local channel — open a second tab to test. Swap in Socket.io/Firebase for real cross-device play.</div>
+        </div>
+      </div>
+      <button class="neon-btn round" id="infoBtn" title="How to play">?</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 
   <div id="hud">
-    <div class="hud-block" id="rosterBlock">
-      <span class="dot red" id="d-red"></span>
-      <span class="dot green" id="d-green"></span>
-      <span class="dot yellow" id="d-yellow"></span>
-    </div>
+    <div class="hud-block" id="rosterBlock"></div>
     <div class="hud-block">
-      <span>TURN:</span><span id="turnLabel" class="red">RED</span>
+      <span>TURN:</span><span id="turnLabel">—</span>
     </div>
     <div class="hud-block" style="cursor:pointer;" id="resetBtn">
       ⟲ RESET
+    </div>
+    <div class="hud-block" style="cursor:pointer;" id="exitBtn">
+      ⏏ EXIT
     </div>
   </div>
 
@@ -219,8 +379,6 @@
     <canvas id="game" width="900" height="560"></canvas>
   </div>
 
-  <div class="footer-note">DRAG BACK FROM THE GLOWING MAGNET TO AIM · RELEASE TO LAUNCH · LAND ON GOLD SIDE OF THE COIN TO HIT HARDER UNTIL YOUR NEXT FLIP · MAGNETS STOP AT THE EDGE — ONLY A HIT FROM ANOTHER MAGNET CAN KNOCK ONE OFF</div>
-
 </div>
 
 <!-- START OVERLAY -->
@@ -228,21 +386,34 @@
   <div class="panel">
     <div class="title">MAGNETIC <span>CLASH</span></div>
     <div class="subtitle">top-down arcade magnet combat</div>
+
+    <div class="section-label">Players</div>
+    <div class="player-count-row" id="playerCountRow">
+      <button class="count-btn" data-count="2">2</button>
+      <button class="count-btn" data-count="3">3</button>
+      <button class="count-btn" data-count="4">4</button>
+      <button class="count-btn" data-count="5">5</button>
+      <button class="count-btn" data-count="6">6</button>
+    </div>
+
     <div class="mode-row">
       <button class="mode-btn selected" data-mode="ffa" id="modeFFA">
         <b>① FREE-FOR-ALL</b>
-        <small>Red vs Green vs Yellow — every magnet for itself</small>
+        <small>Every magnet for itself</small>
       </button>
       <button class="mode-btn" data-mode="teams" id="modeTeams">
         <b>② TEAMS</b>
-        <small>Two random magnets team up against the third — reshuffled every match</small>
+        <small>Random teams split as evenly as possible — reshuffled every match</small>
       </button>
     </div>
-    <div class="legend-row">
-      <span><span class="dot red"></span> RED</span>
-      <span><span class="dot green"></span> GREEN</span>
-      <span><span class="dot yellow"></span> YELLOW</span>
+
+    <div class="section-label">Field Hazards</div>
+    <div class="hazard-row">
+      <label><input type="checkbox" id="obstacleToggle"> Obstacles — static blockers scattered on the field</label>
+      <label><input type="checkbox" id="wellToggle"> Gravitational Well — pulls nearby pucks toward the center</label>
     </div>
+
+    <div class="legend-row" id="legendRow"></div>
     <button class="primary" id="startBtn" style="width:100%; padding:14px; font-size:13px;">START MATCH</button>
   </div>
 </div>
@@ -253,6 +424,36 @@
     <div class="title">MATCH OVER</div>
     <div id="winMsg">—</div>
     <button class="primary" id="playAgainBtn" style="width:100%; padding:14px; font-size:13px;">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- INFO / HOW TO PLAY OVERLAY -->
+<div class="overlay hidden" id="infoOverlay">
+  <div class="panel">
+    <div class="title">HOW TO <span>PLAY</span></div>
+    <ul class="info-list">
+      <li><b>Aim:</b> drag back from your glowing active magnet to set angle and power, then release to launch.</li>
+      <li><b>Knockouts:</b> magnets stop right at the table's edge on their own — only a hit from another magnet can send one flying off.</li>
+      <li><b>Magnetism:</b> nearby magnets gently pull toward each other, then repel hard on contact.</li>
+      <li class="info-power"><b>★ Power-up:</b> land on the corner coins to power up and hit harder until your next flip!</li>
+      <li><b>Teams:</b> in Teams mode, active magnets are randomly split into two sides — reshuffled every match.</li>
+      <li><b>Hazards:</b> toggle Obstacles or the Gravitational Well on the home screen for extra chaos — neither ever blocks the corner coins.</li>
+      <li><b>Online Room:</b> use the ⚡ Room menu to host or join a match with a 4-digit code.</li>
+    </ul>
+    <button class="primary" id="infoCloseBtn" style="width:100%; padding:12px;">GOT IT</button>
+  </div>
+</div>
+
+<!-- LOBBY OVERLAY -->
+<div class="overlay hidden" id="lobbyOverlay">
+  <div class="panel">
+    <div class="title">ROOM <span id="lobbyCodeDisplay">----</span></div>
+    <div class="subtitle" id="lobbyStatus">waiting for players...</div>
+    <div class="subtitle" id="lobbyMatchSize" style="color:var(--gold); margin-top:-14px;">—</div>
+    <div id="lobbyPlayerList"></div>
+    <button class="primary" id="lobbyStartBtn" style="width:100%; padding:14px; font-size:13px; margin-bottom:10px;">START MATCH</button>
+    <div id="lobbyWaitNote" class="subtitle hidden" style="margin:0 0 10px 0;">waiting for the host to start...</div>
+    <button id="lobbyCancelBtn" style="width:100%; padding:10px;">Leave Room</button>
   </div>
 </div>
 
@@ -276,35 +477,57 @@
   const CORNER_INSET = 54;
   const EDGE_MARGIN = PUCK_R * 0.15; // how far past edge before elimination
 
+  // ---- Field hazards config ----
+  const OBSTACLE_R = 20;
+  const OBSTACLE_COUNT = 4;
+  const OBSTACLE_CORNER_BUFFER = CORNER_ZONE_R + OBSTACLE_R + 40;
+  const WELL = { x: W/2, y: H/2 };
+  const WELL_VISUAL_R = 70;         // matches the existing center circle
+  const WELL_PULL_RANGE = 210;      // pucks within this range feel the pull
+  const WELL_STRENGTH = 46;         // tuned "slight" pull constant
+
   const COLORS = {
-    red:    { main:'#ff3b4e', glow:'#ff8a94', dark:'#7a1420' },
-    green:  { main:'#39ff8f', glow:'#a3ffce', dark:'#0e6b3b' },
-    yellow: { main:'#ffd23f', glow:'#fff2b0', dark:'#8a6a0c' }
+    red:    { main:'#ff3b4e', glow:'#ff8a94', dark:'#7a1420', label:'RED' },
+    green:  { main:'#39ff8f', glow:'#a3ffce', dark:'#0e6b3b', label:'GREEN' },
+    yellow: { main:'#ffd23f', glow:'#fff2b0', dark:'#8a6a0c', label:'YELLOW' },
+    purple: { main:'#b24bff', glow:'#dcb3ff', dark:'#4a1273', label:'PURPLE' },
+    pink:   { main:'#ff5fc4', glow:'#ffc2ec', dark:'#7a1f57', label:'PINK' },
+    blue:   { main:'#3fa9ff', glow:'#b3ddff', dark:'#0d4a7a', label:'BLUE' }
   };
+  // fixed pool order — first N are used depending on the selected player count
+  const COLOR_POOL = ['red','green','yellow','purple','pink','blue'];
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
 
   /* ===================== STATE ===================== */
   let mode = 'ffa';
+  let playerCount = 3;
+  let hazardObstacles = false;
+  let hazardWell = false;
   let pucks = [];
-  let turnOrder = ['red','green','yellow'];
+  let turnOrder = [];
   let turnIndex = 0;
-  let activeId = 'red';
+  let activeId = null;
   let awaitingSettle = false;     // physics moving, waiting to resolve turn
   let gameOver = false;
   const BOOST_HIT = 1.7;          // extra knockback multiplier while "powered"
 
-  const ALL_COLORS = ['red','green','yellow'];
-  // in TEAMS mode, this is the color that plays solo against the other two —
-  // re-rolled at random every match so the pairing is never the same twice
-  let soloColor = 'red';
+  let activeColors = COLOR_POOL.slice(0, playerCount);
+  // in TEAMS mode, active magnets are split into two random teams,
+  // re-rolled every match so the pairing is never the same twice
+  let teams = { A: [], B: [] };
+
+  let obstacles = [];
+  let particles = [];
+  let shakeMag = 0;
 
   // pucks spawn anywhere on the table each match — this keeps them off the
-  // walls/corner-flip zones and away from each other so no one starts stuck
+  // walls/corner-flip zones, obstacles, and away from each other
   const SPAWN_WALL_MARGIN = PUCK_R + 46;
   const SPAWN_CORNER_BUFFER = CORNER_ZONE_R + 34;
   const SPAWN_MIN_GAP = PUCK_R * 4.2;
+  const SPAWN_OBSTACLE_BUFFER = OBSTACLE_R + PUCK_R + 16;
 
   function randomSpawnPoint(existing){
     let pos, attempts = 0;
@@ -317,7 +540,8 @@
     } while(
       attempts < 60 && (
         corners.some(c=>Math.hypot(pos.x-c.x,pos.y-c.y) < SPAWN_CORNER_BUFFER) ||
-        existing.some(e=>Math.hypot(pos.x-e.x,pos.y-e.y) < SPAWN_MIN_GAP)
+        existing.some(e=>Math.hypot(pos.x-e.x,pos.y-e.y) < SPAWN_MIN_GAP) ||
+        obstacles.some(o=>Math.hypot(pos.x-o.x,pos.y-o.y) < SPAWN_OBSTACLE_BUFFER)
       )
     );
     return pos;
@@ -333,7 +557,6 @@
   }
 
   let aiming = false;
-  let aimPointerId = null;
   let aimStart = {x:0,y:0};
   let aimCurrent = {x:0,y:0};
 
@@ -346,6 +569,23 @@
       {x:CORNER_INSET, y:H-CORNER_INSET},
       {x:W-CORNER_INSET, y:H-CORNER_INSET}
     ].map(c=>({...c, spin: Math.random()*Math.PI*2}));
+  }
+
+  function initObstacles(){
+    obstacles = [];
+    if(!hazardObstacles) return;
+    let attempts = 0;
+    while(obstacles.length < OBSTACLE_COUNT && attempts < 200){
+      attempts++;
+      const x = OBSTACLE_R + 40 + Math.random()*(W - (OBSTACLE_R+40)*2);
+      const y = OBSTACLE_R + 40 + Math.random()*(H - (OBSTACLE_R+40)*2);
+      const okCorners = corners.every(c=>Math.hypot(x-c.x,y-c.y) > OBSTACLE_CORNER_BUFFER);
+      const okCenter = Math.hypot(x-WELL.x,y-WELL.y) > WELL_VISUAL_R + OBSTACLE_R + 30;
+      const okOthers = obstacles.every(o=>Math.hypot(x-o.x,y-o.y) > OBSTACLE_R*2.6+20);
+      if(okCorners && okCenter && okOthers){
+        obstacles.push({x,y,r:OBSTACLE_R, spin: Math.random()*Math.PI*2});
+      }
+    }
   }
 
   function makePuck(id, color, x, y){
@@ -364,35 +604,115 @@
     };
   }
 
-  function resetGame(){
+  /* ===================== TEAM LOGIC ===================== */
+  function assignTeams(colorsArr){
+    const shuffled = shuffle(colorsArr);
+    let sizeA = Math.floor(shuffled.length/2);
+    let sizeB = shuffled.length - sizeA;
+    // when the split is uneven, randomize which side gets the extra player
+    if(shuffled.length % 2 === 1 && Math.random() < 0.5){
+      const tmp = sizeA; sizeA = sizeB; sizeB = tmp;
+    }
+    return { A: shuffled.slice(0, sizeA), B: shuffled.slice(sizeA) };
+  }
+
+  function teamOf(id){
+    if(mode !== 'teams') return id;
+    return teams.A.includes(id) ? 'A' : 'B';
+  }
+
+  // `preset`, when provided (used when a networked room's host broadcasts the
+  // match to guests), forces this client to build the EXACT same match —
+  // same player count, mode, hazards, obstacle layout, spawn points, and
+  // turn order — instead of rolling its own random settings/positions.
+  function resetGame(preset){
     gameOver = false;
     awaitingSettle = false;
     aiming = false;
+    particles = [];
+    shakeMag = 0;
     initCorners();
 
-    // re-roll which color plays solo this match (teams mode only) —
-    // never the same fixed pairing twice in a row
-    soloColor = ALL_COLORS[Math.floor(Math.random()*ALL_COLORS.length)];
+    if(preset){
+      playerCount = preset.playerCount;
+      mode = preset.mode;
+      hazardObstacles = preset.hazardObstacles;
+      hazardWell = preset.hazardWell;
+      activeColors = preset.activeColors.slice();
+      obstacles = preset.obstacles.map(o=>({...o}));
+      teams = preset.teams ? { A: preset.teams.A.slice(), B: preset.teams.B.slice() } : { A:[], B:[] };
+      pucks = preset.pucks.map(pp => makePuck(pp.id, pp.color, pp.x, pp.y));
+      turnOrder = preset.turnOrder.slice();
+    } else {
+      activeColors = COLOR_POOL.slice(0, playerCount);
+      initObstacles();
 
-    // spawn every color at a fresh random spot each match, in both modes
-    const placed = [];
-    pucks = ALL_COLORS.map(color=>{
-      const pos = randomSpawnPoint(placed);
-      placed.push(pos);
-      return makePuck(color, color, pos.x, pos.y);
-    });
+      if(mode === 'teams'){
+        teams = assignTeams(activeColors);
+      }
 
-    turnOrder = shuffle(ALL_COLORS);
+      // spawn every active color at a fresh random spot each match
+      const placed = [];
+      pucks = activeColors.map(color=>{
+        const pos = randomSpawnPoint(placed);
+        placed.push(pos);
+        return makePuck(color, color, pos.x, pos.y);
+      });
+
+      turnOrder = shuffle(activeColors);
+    }
+
     turnIndex = 0;
     activeId = turnOrder[0];
+    buildRoster();
+    buildLegend();
     updateHUD();
   }
 
-  /* ===================== TEAM LOGIC ===================== */
-  function teamOf(id){
-    if(mode!=='teams') return id;
-    return id===soloColor ? 'solo' : 'duo';
+  // Captures everything a guest screen needs to build an identical match —
+  // called by the host right after it rolls its own resetGame().
+  function buildMatchSnapshot(){
+    return {
+      playerCount, mode, hazardObstacles, hazardWell,
+      activeColors: activeColors.slice(),
+      obstacles: obstacles.map(o=>({x:o.x, y:o.y, r:o.r, spin:o.spin})),
+      teams: mode==='teams' ? { A: teams.A.slice(), B: teams.B.slice() } : null,
+      pucks: pucks.map(p=>({ id:p.id, color:p.color, x:p.x, y:p.y })),
+      turnOrder: turnOrder.slice()
+    };
   }
+
+  function buildRoster(){
+    const block = document.getElementById('rosterBlock');
+    block.innerHTML = '';
+    activeColors.forEach(id=>{
+      const c = COLORS[id];
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.id = 'd-'+id;
+      dot.style.background = c.main;
+      dot.style.boxShadow = '0 0 6px '+c.main;
+      block.appendChild(dot);
+    });
+  }
+
+  function buildLegend(){
+    const row = document.getElementById('legendRow');
+    row.innerHTML = '';
+    activeColors.forEach(id=>{
+      const c = COLORS[id];
+      const span = document.createElement('span');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = c.main;
+      dot.style.boxShadow = '0 0 6px '+c.main;
+      dot.style.marginRight = '5px';
+      span.appendChild(dot);
+      span.appendChild(document.createTextNode(c.label));
+      row.appendChild(span);
+    });
+  }
+
   function aliveIds(){ return pucks.filter(p=>p.alive).map(p=>p.id); }
 
   function checkWin(){
@@ -401,21 +721,20 @@
       if(alive.length<=1){
         gameOver = true;
         const winner = alive[0];
-        showWin(winner ? `${winner.id.toUpperCase()} MAGNET WINS!` : "DOUBLE KNOCKOUT — NO WINNER");
+        showWin(winner ? `${COLORS[winner.id].label} MAGNET WINS!` : "DOUBLE KNOCKOUT — NO WINNER");
         return true;
       }
     } else {
-      const teams = new Set(alive.map(p=>teamOf(p.id)));
-      if(teams.size<=1){
+      const teamsAlive = new Set(alive.map(p=>teamOf(p.id)));
+      if(teamsAlive.size<=1){
         gameOver = true;
         const t = alive.length? teamOf(alive[0].id) : null;
         let msg;
         if(!t) msg = "DOUBLE KNOCKOUT — NO WINNER";
-        else if(t==='duo'){
-          const duoColors = ALL_COLORS.filter(c=>c!==soloColor);
-          msg = `${duoColors[0].toUpperCase()} & ${duoColors[1].toUpperCase()} TEAM WINS!`;
+        else{
+          const winners = teams[t].map(c=>COLORS[c].label);
+          msg = winners.join(' & ') + (winners.length>1 ? ' TEAM WINS!' : ' WINS SOLO!');
         }
-        else msg = `${soloColor.toUpperCase()} WINS SOLO!`;
         showWin(msg);
         return true;
       }
@@ -436,7 +755,7 @@
     do{
       turnIndex = (turnIndex+1) % turnOrder.length;
       tries++;
-    } while(!pucks.find(p=>p.id===turnOrder[turnIndex] && p.alive) && tries<10);
+    } while(!pucks.find(p=>p.id===turnOrder[turnIndex] && p.alive) && tries<20);
     const nextPuck = pucks.find(p=>p.id===turnOrder[turnIndex]);
     activeId = nextPuck ? nextPuck.id : activeId;
     updateHUD();
@@ -445,13 +764,66 @@
   function updateHUD(){
     const label = document.getElementById('turnLabel');
     const activePuck = pucks.find(pp=>pp.id===activeId);
-    label.textContent = activeId.toUpperCase() + (activePuck && activePuck.powered ? ' ★ (POWERED)' : '');
-    label.className = activeId;
-    ['red','green','yellow'].forEach(id=>{
+    if(activeId && COLORS[activeId]){
+      label.textContent = COLORS[activeId].label + (activePuck && activePuck.powered ? ' ★ (POWERED)' : '');
+      label.style.color = COLORS[activeId].main;
+      label.style.textShadow = '0 0 8px '+COLORS[activeId].main;
+    }
+    activeColors.forEach(id=>{
       const el = document.getElementById('d-'+id);
+      if(!el) return;
       const p = pucks.find(pp=>pp.id===id);
-      el.className = 'dot '+id + (p && !p.alive ? ' dead':'');
+      el.className = 'dot' + (p && !p.alive ? ' dead':'');
     });
+  }
+
+  /* ===================== PARTICLE FX ===================== */
+  function spawnSparks(x, y, colorA, colorB, count){
+    for(let i=0;i<count;i++){
+      const ang = Math.random()*Math.PI*2;
+      const spd = 1 + Math.random()*3.6;
+      particles.push({
+        x, y,
+        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+        life: 0, maxLife: 18 + Math.random()*18,
+        color: Math.random() < 0.5 ? colorA : colorB,
+        size: 1.4 + Math.random()*2.2
+      });
+    }
+  }
+
+  function updateParticles(){
+    for(let i=particles.length-1;i>=0;i--){
+      const pt = particles[i];
+      pt.x += pt.vx; pt.y += pt.vy;
+      pt.vx *= 0.94; pt.vy *= 0.94;
+      pt.life++;
+      if(pt.life >= pt.maxLife) particles.splice(i,1);
+    }
+  }
+
+  function drawParticles(){
+    particles.forEach(pt=>{
+      const t = 1 - pt.life/pt.maxLife;
+      ctx.save();
+      ctx.globalAlpha = Math.max(t,0);
+      ctx.fillStyle = pt.color;
+      ctx.shadowColor = pt.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.size*t + 0.6, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  /* ===================== SCREEN SHAKE ===================== */
+  function addShake(amount){
+    shakeMag = Math.min(shakeMag + amount, 22);
+  }
+  function decayShake(){
+    shakeMag *= 0.88;
+    if(shakeMag < 0.05) shakeMag = 0;
   }
 
   /* ===================== PHYSICS ===================== */
@@ -488,6 +860,21 @@
       }
     }
 
+    // gravitational well hazard — a slight pull toward the center for any
+    // puck that passes close to it (does not affect corner power-up zones)
+    if(hazardWell){
+      alive.forEach(p=>{
+        const dx = WELL.x - p.x, dy = WELL.y - p.y;
+        const dist = Math.max(Math.hypot(dx,dy), 30);
+        if(dist < WELL_PULL_RANGE){
+          const nx = dx/dist, ny = dy/dist;
+          const force = WELL_STRENGTH / (dist*dist) * 60;
+          p.vx += nx*force*0.0016;
+          p.vy += ny*force*0.0016;
+        }
+      });
+    }
+
     // integrate + friction
     alive.forEach(p=>{
       p.x += p.vx; p.y += p.vy;
@@ -512,6 +899,9 @@
           const p_ = (kx*nx + ky*ny) * RESTITUTION;
           if(Math.abs(p_) > HIT_IMPULSE_THRESHOLD){
             a.justHit = true; b.justHit = true;
+            // ---- collision spark FX (colors match the pucks involved) ----
+            spawnSparks((a.x+b.x)/2, (a.y+b.y)/2, COLORS[a.color].main, COLORS[b.color].main, 12);
+            addShake(Math.min(Math.abs(p_)*2.5, 10));
           }
           // a powered puck sends the OTHER puck flying harder on impact
           const impulseOnA = p_ * (b.powered ? BOOST_HIT : 1);
@@ -522,11 +912,35 @@
       }
     }
 
+    // obstacle collisions (static field hazards — treated as immovable)
+    if(hazardObstacles && obstacles.length){
+      alive.forEach(p=>{
+        obstacles.forEach(o=>{
+          const dx = p.x-o.x, dy = p.y-o.y;
+          const dist = Math.hypot(dx,dy);
+          const minDist = p.r+o.r;
+          if(dist < minDist && dist>0){
+            const nx = dx/dist, ny = dy/dist;
+            const overlap = minDist-dist;
+            p.x += nx*overlap; p.y += ny*overlap;
+            const vn = p.vx*nx + p.vy*ny;
+            if(vn < 0){
+              p.vx -= 2*vn*nx*RESTITUTION;
+              p.vy -= 2*vn*ny*RESTITUTION;
+              spawnSparks(p.x - nx*p.r, p.y - ny*p.r, COLORS[p.color].main, '#9fb3c8', 10);
+              if(Math.abs(vn) > HIT_IMPULSE_THRESHOLD) addShake(Math.abs(vn)*2);
+            }
+          }
+        });
+      });
+    }
+
     // wall boundary handling: a magnet stops right at the edge of the table.
     // it will only go over (and fall) if it's already resting at the edge
     // and gets hit by another puck's collision.
     alive.forEach(p=>{
       const minX = p.r, maxX = W-p.r, minY = p.r, maxY = H-p.r;
+      const wasAtEdge = p.atEdge;
       const touching = p.x<=minX || p.x>=maxX || p.y<=minY || p.y>=maxY;
       if(touching){
         if(p.justHit && p.atEdge){
@@ -539,6 +953,10 @@
           if(p.x>maxX) p.x=maxX;
           if(p.y<minY) p.y=minY;
           if(p.y>maxY) p.y=maxY;
+          if(!wasAtEdge && speed(p) > 0.6){
+            // fresh wall touch under some speed — small collision spark
+            spawnSparks(p.x, p.y, COLORS[p.color].main, '#28e0ff', 8);
+          }
           p.vx = 0; p.vy = 0;
         }
         p.atEdge = true;
@@ -568,6 +986,9 @@
       if(off){
         p.falling = true;
         p.fallT = 0;
+        // knockout burst + screen shake
+        spawnSparks(Math.max(0,Math.min(W,p.x)), Math.max(0,Math.min(H,p.y)), COLORS[p.color].main, '#ffffff', 26);
+        addShake(14);
       }
     });
 
@@ -590,6 +1011,8 @@
     p.flipT = 0;
     const success = Math.random() < 0.5;
     p.pendingResult = success;
+    // broadcast the flip outcome to any connected room so all screens agree
+    netBroadcast({ type:'flip', puckId:p.id, pendingResult: success });
   }
 
   function stepFlips(){
@@ -609,8 +1032,6 @@
 
   /* ===================== RENDER ===================== */
   function drawTable(){
-    ctx.clearRect(0,0,W,H);
-
     // felt gradient
     const g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'#152238');
@@ -634,6 +1055,28 @@
     ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
     ctx.beginPath(); ctx.arc(W/2,H/2,70,0,Math.PI*2); ctx.stroke();
 
+    // gravitational well / black hole visual
+    if(hazardWell){
+      ctx.save();
+      ctx.translate(WELL.x, WELL.y);
+      const t = performance.now()/1000;
+      for(let ring=0; ring<3; ring++){
+        const rr = ((t*26 + ring*24) % 70);
+        ctx.globalAlpha = Math.max(0, 0.5 - rr/70*0.5);
+        ctx.strokeStyle = '#b24bff';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0,0, WELL_VISUAL_R - rr, 0, Math.PI*2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      const grad = ctx.createRadialGradient(0,0,2,0,0, WELL_VISUAL_R*0.55);
+      grad.addColorStop(0,'#000000');
+      grad.addColorStop(0.7,'#1a0a2e');
+      grad.addColorStop(1,'rgba(178,75,255,0.15)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(0,0, WELL_VISUAL_R*0.5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
     // outer boundary (glowing edge = danger zone)
     ctx.save();
     ctx.strokeStyle = '#28e0ff';
@@ -642,6 +1085,25 @@
     ctx.shadowBlur = 14;
     ctx.strokeRect(3,3,W-6,H-6);
     ctx.restore();
+
+    // obstacles (field hazards)
+    if(hazardObstacles){
+      obstacles.forEach(o=>{
+        ctx.save();
+        ctx.translate(o.x,o.y);
+        const grad = ctx.createRadialGradient(-o.r*0.3,-o.r*0.3,2,0,0,o.r);
+        grad.addColorStop(0,'#8fa3b8');
+        grad.addColorStop(1,'#334a63');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = '#28e0ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(0,0,o.r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(40,224,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0,0,o.r-1,0,Math.PI*2); ctx.stroke();
+        ctx.restore();
+      });
+    }
 
     // corner zones
     corners.forEach(c=>{
@@ -693,7 +1155,7 @@
     }
     ctx.scale(scale*flipScaleX===0?0.001:scale*flipScaleX, scale);
 
-    // active glow ring
+    // active turn glow ring
     if(isActive){
       const pulse = 6 + Math.sin(performance.now()/180)*4;
       ctx.save();
@@ -704,6 +1166,17 @@
       ctx.strokeStyle = c.glow;
       ctx.lineWidth = 3;
       ctx.stroke();
+      ctx.restore();
+
+      // expanding magnetic wave ripple to make the active turn unmistakable
+      const rippleT = (performance.now()/1000) % 1.2;
+      const rippleR = p.r + 10 + rippleT*32;
+      const rippleAlpha = 1 - rippleT/1.2;
+      ctx.save();
+      ctx.globalAlpha *= rippleAlpha*0.55;
+      ctx.strokeStyle = c.glow;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,rippleR,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     }
 
@@ -829,9 +1302,18 @@
   }
 
   function render(){
+    // clear full canvas BEFORE the screen-shake translate, so shake never
+    // leaves smeared edges behind
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    if(shakeMag > 0.1){
+      ctx.translate((Math.random()-0.5)*shakeMag, (Math.random()-0.5)*shakeMag);
+    }
     drawTable();
     pucks.forEach(drawPuck);
+    drawParticles();
     drawAimGuide();
+    ctx.restore();
   }
 
   /* ===================== INPUT ===================== */
@@ -862,6 +1344,14 @@
     evt.preventDefault();
     aimCurrent = getCanvasPos(evt);
   }
+  function launchPuck(puckId, angle, power){
+    const p = pucks.find(pp=>pp.id===puckId);
+    if(!p) return;
+    p.vx = Math.cos(angle)*power*6;
+    p.vy = Math.sin(angle)*power*6;
+    awaitingSettle = true;
+  }
+
   function onUp(evt){
     if(!aiming) return;
     evt.preventDefault();
@@ -877,10 +1367,10 @@
     dist = Math.min(dist, MAX_PULL);
     const angle = Math.atan2(dy,dx);
     const power = dist * POWER_SCALE;
-    p.vx = Math.cos(angle)*power*6;
-    p.vy = Math.sin(angle)*power*6;
 
-    awaitingSettle = true;
+    launchPuck(p.id, angle, power);
+    // broadcast the launch vector so every connected screen simulates it identically
+    netBroadcast({ type:'launch', puckId:p.id, angle, power });
   }
 
   canvas.addEventListener('mousedown', onDown);
@@ -901,6 +1391,8 @@
         nextTurn();
       }
     }
+    updateParticles();
+    decayShake();
     render();
     requestAnimationFrame(loop);
   }
@@ -914,6 +1406,41 @@
     });
   });
 
+  document.querySelectorAll('.count-btn').forEach(btn=>{
+    if(parseInt(btn.dataset.count,10) === playerCount) btn.classList.add('selected');
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.count-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      playerCount = parseInt(btn.dataset.count,10);
+      buildPreviewLegend();
+    });
+  });
+
+  function buildPreviewLegend(){
+    const row = document.getElementById('legendRow');
+    row.innerHTML = '';
+    COLOR_POOL.slice(0, playerCount).forEach(id=>{
+      const c = COLORS[id];
+      const span = document.createElement('span');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = c.main;
+      dot.style.boxShadow = '0 0 6px '+c.main;
+      dot.style.marginRight = '5px';
+      span.appendChild(dot);
+      span.appendChild(document.createTextNode(c.label));
+      row.appendChild(span);
+    });
+  }
+  buildPreviewLegend();
+
+  document.getElementById('obstacleToggle').addEventListener('change', (e)=>{
+    hazardObstacles = e.target.checked;
+  });
+  document.getElementById('wellToggle').addEventListener('change', (e)=>{
+    hazardWell = e.target.checked;
+  });
+
   document.getElementById('startBtn').addEventListener('click', ()=>{
     document.getElementById('startOverlay').classList.add('hidden');
     resetGame();
@@ -921,12 +1448,219 @@
 
   document.getElementById('playAgainBtn').addEventListener('click', ()=>{
     document.getElementById('winOverlay').classList.add('hidden');
-    document.getElementById('startOverlay').classList.remove('hidden');
+    if(netRoomCode){
+      // still connected to a room — go back to the lobby so the host can
+      // start the next round in sync, rather than each screen picking again
+      showLobby(netRoomCode);
+    } else {
+      document.getElementById('startOverlay').classList.remove('hidden');
+    }
   });
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     document.getElementById('winOverlay').classList.add('hidden');
     resetGame();
+  });
+
+  /* Exit — works from FFA, Teams, or a Room match alike: stop the current
+     match, leave any active room connection, and return to the main menu */
+  document.getElementById('exitBtn').addEventListener('click', ()=>{
+    gameOver = true;
+    aiming = false;
+    awaitingSettle = false;
+    document.getElementById('powerMeterWrap').classList.remove('show');
+    document.getElementById('winOverlay').classList.add('hidden');
+    document.getElementById('lobbyOverlay').classList.add('hidden');
+    if(netChannel){
+      netBroadcast({ type:'playerLeft' });
+      netChannel.close();
+      netChannel = null;
+    }
+    netRoomCode = null;
+    netIsHost = false;
+    netPlayers = 1;
+    document.getElementById('startOverlay').classList.remove('hidden');
+  });
+
+  /* ---- Info / How to Play modal ---- */
+  document.getElementById('infoBtn').addEventListener('click', ()=>{
+    document.getElementById('infoOverlay').classList.remove('hidden');
+  });
+  document.getElementById('infoCloseBtn').addEventListener('click', ()=>{
+    document.getElementById('infoOverlay').classList.add('hidden');
+  });
+
+  /* ---- Room dropdown ---- */
+  const roomBtn = document.getElementById('roomBtn');
+  const roomDropdown = document.getElementById('roomDropdown');
+  const joinRow = document.getElementById('joinRow');
+  roomBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    roomDropdown.classList.toggle('hidden');
+  });
+  document.addEventListener('click', (e)=>{
+    if(!roomDropdown.contains(e.target) && e.target !== roomBtn){
+      roomDropdown.classList.add('hidden');
+      joinRow.classList.add('hidden');
+    }
+  });
+
+  document.getElementById('joinRoomBtnToggle').addEventListener('click', ()=>{
+    joinRow.classList.toggle('hidden');
+  });
+
+  /* ===================== NETWORKING (Room system) =====================
+     This uses the browser's BroadcastChannel API so the Room UI is fully
+     testable right now across multiple tabs on the SAME device/browser.
+     BroadcastChannel does NOT reach other devices or networks.
+     To go live across real devices, replace netInit/netBroadcast below
+     with a Socket.io or Firebase Realtime Database connection — the rest
+     of the game (launchPuck, triggerFlip broadcast) already calls through
+     this same small adapter, so no other code needs to change. */
+  let netChannel = null;
+  let netRoomCode = null;
+  let netIsHost = false;
+  let netPlayers = 1;
+
+  function makeRoomCode(){
+    return String(Math.floor(1000 + Math.random()*9000));
+  }
+
+  function netInit(code, asHost){
+    if(netChannel) netChannel.close();
+    netRoomCode = code;
+    netIsHost = asHost;
+    netPlayers = 1;
+    if('BroadcastChannel' in window){
+      netChannel = new BroadcastChannel('magnetic-clash-room-'+code);
+      netChannel.onmessage = (e)=> handleNetMessage(e.data);
+      netChannel.postMessage({ type:'hello', host:asHost });
+    }
+  }
+
+  function netBroadcast(msg){
+    if(netChannel) netChannel.postMessage(msg);
+  }
+
+  function handleNetMessage(msg){
+    if(!msg) return;
+    if(msg.type === 'hello'){
+      // count every real join — capped only by the color pool (max 6),
+      // NEVER by whatever number was pre-selected on the menu. That cap was
+      // the bug: it made the match spawn a puck for nobody when fewer
+      // people actually joined than the host had pre-selected.
+      netPlayers = Math.min(netPlayers+1, 6);
+      renderLobbyPlayers();
+      netBroadcast({ type:'roster', count:netPlayers });
+    } else if(msg.type === 'roster'){
+      netPlayers = msg.count;
+      renderLobbyPlayers();
+    } else if(msg.type === 'launch'){
+      launchPuck(msg.puckId, msg.angle, msg.power);
+    } else if(msg.type === 'flip'){
+      const p = pucks.find(pp=>pp.id===msg.puckId);
+      if(p){ p.flipping = true; p.flipT = 0; p.pendingResult = msg.pendingResult; }
+    } else if(msg.type === 'startMatch'){
+      document.getElementById('lobbyOverlay').classList.add('hidden');
+      document.getElementById('startOverlay').classList.add('hidden');
+      // apply the HOST's exact settings/positions so every screen matches —
+      // this is the fix: player count, mode, and hazards now come from the
+      // host instead of each device's own local menu selection
+      resetGame(msg.config);
+    }
+  }
+
+  function renderLobbyPlayers(){
+    const list = document.getElementById('lobbyPlayerList');
+    list.innerHTML = '';
+    for(let i=1;i<=Math.max(netPlayers,1);i++){
+      const slot = document.createElement('div');
+      slot.className = 'lobby-slot' + (i===1 && netIsHost ? ' you' : '');
+      slot.textContent = (i===1 && netIsHost) ? 'Player 1 (You — Host)' : 'Player '+i;
+      list.appendChild(slot);
+    }
+    document.getElementById('lobbyStatus').textContent =
+      netPlayers >= 2 ? netPlayers+' players connected' : 'Waiting for players...';
+
+    // the match ALWAYS uses however many players actually joined — this
+    // readout is the source of truth, not the main-menu player-count row
+    const matchSize = Math.max(2, Math.min(6, netPlayers));
+    const sizeNote = document.getElementById('lobbyMatchSize');
+    sizeNote.textContent = netPlayers < 2
+      ? 'need at least 1 more player to start'
+      : `match will use ${matchSize} player${matchSize>1?'s':''} (${netPlayers} connected)`;
+  }
+
+  // Guests don't pick their own mode/hazards — the host's choices win, so
+  // we lock those out while connected as a guest.
+  function setLocalSettingsLocked(locked){
+    document.querySelectorAll('.mode-btn').forEach(b=> b.disabled = locked);
+    document.getElementById('obstacleToggle').disabled = locked;
+    document.getElementById('wellToggle').disabled = locked;
+  }
+  // The player-count row never applies once you're in a room — match size
+  // is always however many people actually joined, not a manual pick — so
+  // this locks for BOTH host and guest while a room is open.
+  function setCountRowLocked(locked){
+    document.querySelectorAll('.count-btn').forEach(b=> b.disabled = locked);
+  }
+
+  function showLobby(code){
+    document.getElementById('lobbyCodeDisplay').textContent = code;
+    renderLobbyPlayers();
+    document.getElementById('lobbyStartBtn').classList.toggle('hidden', !netIsHost);
+    document.getElementById('lobbyWaitNote').classList.toggle('hidden', netIsHost);
+    document.getElementById('lobbyOverlay').classList.remove('hidden');
+    roomDropdown.classList.add('hidden');
+    joinRow.classList.add('hidden');
+  }
+
+  document.getElementById('makeRoomBtn').addEventListener('click', ()=>{
+    const code = makeRoomCode();
+    netInit(code, true);
+    setLocalSettingsLocked(false); // host's own mode/hazard selections are the source of truth
+    setCountRowLocked(true);       // player count is now driven by who actually joins
+    showLobby(code);
+  });
+
+  document.getElementById('joinConnectBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('joinCodeInput');
+    const code = input.value.trim();
+    if(!/^\d{4}$/.test(code)){
+      input.style.borderColor = 'var(--red)';
+      return;
+    }
+    input.style.borderColor = '';
+    netInit(code, false);
+    setLocalSettingsLocked(true); // guest — host controls mode/hazards
+    setCountRowLocked(true);      // player count is driven by who actually joins
+    showLobby(code);
+  });
+
+  document.getElementById('lobbyStartBtn').addEventListener('click', ()=>{
+    if(!netIsHost) return; // only the host can start — guests wait for the broadcast
+    if(netPlayers < 2){
+      // not enough real players connected yet — flash the readout instead of starting
+      const note = document.getElementById('lobbyMatchSize');
+      note.style.color = 'var(--red)';
+      setTimeout(()=>{ note.style.color = 'var(--gold)'; }, 500);
+      return;
+    }
+    // force the match size to match how many people ACTUALLY joined —
+    // this overrides whatever was pre-selected on the main menu
+    playerCount = Math.max(2, Math.min(6, netPlayers));
+    document.getElementById('lobbyOverlay').classList.add('hidden');
+    document.getElementById('startOverlay').classList.add('hidden');
+    resetGame(); // host rolls the real match: settings, obstacles, spawns, turn order
+    netBroadcast({ type:'startMatch', config: buildMatchSnapshot() });
+  });
+
+  document.getElementById('lobbyCancelBtn').addEventListener('click', ()=>{
+    if(netChannel){ netChannel.close(); netChannel = null; }
+    netRoomCode = null;
+    setLocalSettingsLocked(false);
+    setCountRowLocked(false);
+    document.getElementById('lobbyOverlay').classList.add('hidden');
   });
 
   /* responsive canvas sizing */
@@ -949,4 +1683,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
