@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -456,6 +456,87 @@
     <button id="lobbyCancelBtn" style="width:100%; padding:10px;">Leave Room</button>
   </div>
 </div>
+
+<!-- ===================== FIREBASE SETUP =====================
+     1. Create a project at https://console.firebase.google.com
+     2. Build -> Realtime Database -> Create Database (test mode is fine to start)
+     3. Project settings -> General -> Your apps -> Web app -> copy the config
+     4. Paste your config into firebaseConfig below.
+     Rooms live at /rooms/{code} and clean themselves up automatically:
+     onDisconnect() removes a player's presence entry the moment their tab/
+     browser closes or their connection drops, and the last player leaving
+     deletes the whole room node so codes don't pile up forever. -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import {
+    getDatabase, ref, push, onChildAdded, onDisconnect,
+    set, remove, query, orderByChild, startAfter, serverTimestamp, get
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCy0WOor49pSo8ihSX02VTHpdNojs9trcw",
+    authDomain: "magnetic-clash.firebaseapp.com",
+    databaseURL: "https://magnetic-clash-default-rtdb.firebaseio.com",
+    projectId: "magnetic-clash",
+    storageBucket: "magnetic-clash.firebasestorage.app",
+    messagingSenderId: "522075075855",
+    appId: "1:522075075855:web:4d5870bb7de804d0137a7a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Small adapter exposed on window so the classic <script> below (which
+  // holds all the game logic) can drive Firebase without needing to become
+  // a module itself. Mirrors the shape netInit/netBroadcast already expect.
+  window.FBRooms = {
+    // returns a "channel-like" object with .close(), matching what the
+    // game code already calls on netChannel
+    join(code, onMessage){
+      const clientId = Math.random().toString(36).slice(2);
+      const joinedAt = Date.now();
+      const msgsRef = ref(db, `rooms/${code}/messages`);
+      const presenceRef = ref(db, `rooms/${code}/presence/${clientId}`);
+      const presenceRootRef = ref(db, `rooms/${code}/presence`);
+      const roomRef = ref(db, `rooms/${code}`);
+
+      // mark ourselves present, and auto-remove if we disconnect
+      // (tab closed, browser crashed, network dropped, etc.)
+      set(presenceRef, true);
+      onDisconnect(presenceRef).remove();
+      // if we're the last one out, delete the whole room so old codes
+      // don't linger in the database forever
+      onDisconnect(roomRef).remove();
+
+      // only react to messages sent AFTER we joined, so we don't replay
+      // the whole room history (e.g. an old "hello") the moment we connect
+      const liveQuery = query(msgsRef, orderByChild('_t'), startAfter(joinedAt));
+      const unsubscribe = onChildAdded(liveQuery, (snap)=>{
+        const msg = snap.val();
+        if(msg && msg._from !== clientId) onMessage(msg);
+      });
+
+      // announce ourselves to everyone already in the room
+      push(msgsRef, { type:'hello', _from: clientId, _t: serverTimestamp() });
+
+      return {
+        close(){
+          unsubscribe();
+          remove(presenceRef);
+          onDisconnect(presenceRef).cancel();
+          onDisconnect(roomRef).cancel();
+          // if no one else is left, clean up the room's message log too
+          get(presenceRootRef).then(snap=>{
+            if(!snap.exists()) remove(roomRef);
+          });
+        },
+        send(msg){
+          push(msgsRef, Object.assign({}, msg, { _from: clientId, _t: serverTimestamp() }));
+        }
+      };
+    }
+  };
+</script>
 
 <script>
 (function(){
@@ -1510,13 +1591,11 @@
   });
 
   /* ===================== NETWORKING (Room system) =====================
-     This uses the browser's BroadcastChannel API so the Room UI is fully
-     testable right now across multiple tabs on the SAME device/browser.
-     BroadcastChannel does NOT reach other devices or networks.
-     To go live across real devices, replace netInit/netBroadcast below
-     with a Socket.io or Firebase Realtime Database connection — the rest
-     of the game (launchPuck, triggerFlip broadcast) already calls through
-     this same small adapter, so no other code needs to change. */
+     Backed by Firebase Realtime Database (see the FBRooms adapter defined
+     in the module script above), so rooms now reach any device on any
+     network — not just tabs on the same browser. The rest of the game
+     (launchPuck, triggerFlip broadcast, handleNetMessage, etc.) is
+     unchanged: it still just calls netInit/netBroadcast. */
   let netChannel = null;
   let netRoomCode = null;
   let netIsHost = false;
@@ -1531,15 +1610,15 @@
     netRoomCode = code;
     netIsHost = asHost;
     netPlayers = 1;
-    if('BroadcastChannel' in window){
-      netChannel = new BroadcastChannel('magnetic-clash-room-'+code);
-      netChannel.onmessage = (e)=> handleNetMessage(e.data);
-      netChannel.postMessage({ type:'hello', host:asHost });
+    if(window.FBRooms){
+      netChannel = window.FBRooms.join(code, handleNetMessage);
+    } else {
+      console.error('Firebase not loaded — check your firebaseConfig and network connection.');
     }
   }
 
   function netBroadcast(msg){
-    if(netChannel) netChannel.postMessage(msg);
+    if(netChannel) netChannel.send(msg);
   }
 
   function handleNetMessage(msg){
@@ -1683,4 +1762,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
