@@ -556,6 +556,14 @@
   const PUCK_R = 26;
   const FRICTION = 0.9875;
   const MIN_SPEED = 0.045;
+  // Physics used to advance once per requestAnimationFrame call, so a
+  // 120Hz display ran the simulation twice as fast (in real time) as a
+  // 60Hz display. Across a networked match that meant two screens watching
+  // the *same* launch drift apart in position, timing of the coin-flip
+  // zones, and therefore whose turn it was next. Stepping physics on a
+  // fixed real-time clock (below, in loop()) makes every device simulate
+  // at the same rate regardless of its screen's refresh rate.
+  const FIXED_DT_MS = 1000/60;
   const MAGNET_RANGE = 170;
   const MAGNET_STRENGTH = 520;     // attraction constant
   const REPEL_ZONE = PUCK_R*2 + 6; // soft repulsion starts here
@@ -1099,6 +1107,15 @@
   function triggerFlip(p){
     p.flipping = true;
     p.flipT = 0;
+    // In a networked room, only the host rolls the coin — guests wait for
+    // the host's 'flip' broadcast instead of rolling their own. Both sides
+    // independently detecting the corner zone and each rolling Math.random()
+    // was producing two different outcomes for the same flip (this was part
+    // of the "different movement" desync bug).
+    if(netChannel && !netIsHost){
+      p.pendingResult = null; // filled in shortly by handleNetMessage
+      return;
+    }
     const success = Math.random() < 0.5;
     p.pendingResult = success;
     // broadcast the flip outcome to any connected room so all screens agree
@@ -1108,7 +1125,8 @@
   function stepFlips(){
     pucks.forEach(p=>{
       if(p.flipping){
-        p.flipT += 16.6;
+        if(p.pendingResult === null) return; // guest still waiting on host's roll
+        p.flipT += FIXED_DT_MS;
         if(p.flipT >= p.flipDur){
           p.flipping = false;
           p.flipResult = p.pendingResult ? 'B' : 'A';
@@ -1471,16 +1489,36 @@
   canvas.addEventListener('touchend', onUp, {passive:false});
 
   /* ===================== MAIN LOOP ===================== */
-  function loop(){
-    if(!gameOver){
-      stepPhysics();
-      stepFlips();
+  let lastFrameTime = null;
+  let physicsAccumulator = 0;
+  const MAX_STEPS_PER_FRAME = 5; // avoid a spiral of death if a tab was backgrounded
 
-      if(awaitingSettle && allSettled()){
-        awaitingSettle = false;
-        nextTurn();
+  function loop(timestamp){
+    if(lastFrameTime === null) lastFrameTime = timestamp;
+    let delta = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+    if(delta > 250) delta = 250; // clamp big gaps (tab switch, lag spike)
+    physicsAccumulator += delta;
+
+    // Advance the simulation in fixed-size steps of real time, however many
+    // rAF calls it takes to catch up — this is what keeps every connected
+    // device's puck positions, flip timers, and turn order in lockstep,
+    // instead of each device simulating at its own display's frame rate.
+    let steps = 0;
+    while(physicsAccumulator >= FIXED_DT_MS && steps < MAX_STEPS_PER_FRAME){
+      if(!gameOver){
+        stepPhysics();
+        stepFlips();
+
+        if(awaitingSettle && allSettled()){
+          awaitingSettle = false;
+          nextTurn();
+        }
       }
+      physicsAccumulator -= FIXED_DT_MS;
+      steps++;
     }
+
     updateParticles();
     decayShake();
     render();
@@ -1643,7 +1681,14 @@
       launchPuck(msg.puckId, msg.angle, msg.power);
     } else if(msg.type === 'flip'){
       const p = pucks.find(pp=>pp.id===msg.puckId);
-      if(p){ p.flipping = true; p.flipT = 0; p.pendingResult = msg.pendingResult; }
+      if(p){
+        // Fill in the host's authoritative result. Don't reset flipT if this
+        // client already started the flip animation locally (from its own
+        // physics detecting the corner zone) — restarting it here used to
+        // desync the flip timer between host and guest.
+        if(!p.flipping){ p.flipping = true; p.flipT = 0; }
+        p.pendingResult = msg.pendingResult;
+      }
     } else if(msg.type === 'startMatch'){
       document.getElementById('lobbyOverlay').classList.add('hidden');
       document.getElementById('startOverlay').classList.add('hidden');
