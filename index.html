@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -295,6 +295,7 @@
   <div class="topbar-inner">
     <div class="brand">MAGNETIC <span>CLASH</span></div>
     <div class="topbar-actions">
+      <a class="neon-btn round" id="downloadAppBtn" href="https://drive.google.com/drive/folders/1Zb5NsIecrqszNBjtsMhIe7HQz_4ulQ5L" target="_blank" rel="noopener noreferrer" title="Download App" style="text-decoration:none; font-size:9px;">APP</a>
       <button class="neon-btn round" id="infoBtn" title="How to play">?</button>
     </div>
   </div>
@@ -1363,12 +1364,14 @@
 
   document.getElementById('startBtn').addEventListener('click', ()=>{
     document.getElementById('startOverlay').classList.add('hidden');
+    document.getElementById('downloadAppBtn').classList.add('hidden');
     resetGame();
   });
 
   document.getElementById('playAgainBtn').addEventListener('click', ()=>{
     document.getElementById('winOverlay').classList.add('hidden');
     document.getElementById('startOverlay').classList.remove('hidden');
+    document.getElementById('downloadAppBtn').classList.remove('hidden');
   });
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
@@ -1385,6 +1388,7 @@
     document.getElementById('powerMeterWrap').classList.remove('show');
     document.getElementById('winOverlay').classList.add('hidden');
     document.getElementById('startOverlay').classList.remove('hidden');
+    document.getElementById('downloadAppBtn').classList.remove('hidden');
   });
 
   /* ---- Info / How to Play modal ---- */
@@ -1415,4 +1419,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
