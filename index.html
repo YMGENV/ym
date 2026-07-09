@@ -1,4 +1,4 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -119,6 +119,29 @@
     font-size:12px; font-weight:bold; letter-spacing:2px;
     text-transform:uppercase;
     text-shadow:0 0 8px currentColor;
+  }
+
+  /* ---------- Teams display (shown above the roster dots) ---------- */
+  #teamsInfo{
+    width:min(94vw, 920px);
+    display:flex; align-items:center; justify-content:center;
+    gap:10px; flex-wrap:wrap;
+    font-size:10.5px; letter-spacing:1px;
+    margin-top:8px;
+    color:var(--dim);
+  }
+  #teamsInfo .team-group{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 10px;
+    background:linear-gradient(180deg,#0f1a2c,#0a1320);
+    border:1px solid #1f3350;
+    border-radius:4px;
+  }
+  #teamsInfo .team-name{
+    font-weight:bold; color:var(--ink); margin-right:2px;
+  }
+  #teamsInfo .vs{
+    font-size:10px; color:var(--dim); letter-spacing:2px;
   }
 
   button{
@@ -302,6 +325,8 @@
 </div>
 
 <div id="app">
+
+  <div id="teamsInfo" class="hidden"></div>
 
   <div id="hud">
     <div class="hud-block" id="rosterBlock"></div>
@@ -585,7 +610,47 @@
     activeId = turnOrder[0];
     buildRoster();
     buildLegend();
+    buildTeamsInfo();
     updateHUD();
+  }
+
+  function buildTeamsInfo(){
+    const wrap = document.getElementById('teamsInfo');
+    wrap.innerHTML = '';
+    if(mode !== 'teams'){
+      wrap.classList.add('hidden');
+      return;
+    }
+    wrap.classList.remove('hidden');
+    ['A','B'].forEach((t, i)=>{
+      if(i > 0){
+        const vs = document.createElement('span');
+        vs.className = 'vs';
+        vs.textContent = 'VS';
+        wrap.appendChild(vs);
+      }
+      const group = document.createElement('span');
+      group.className = 'team-group';
+      const name = document.createElement('span');
+      name.className = 'team-name';
+      name.textContent = 'TEAM ' + t + ':';
+      group.appendChild(name);
+      teams[t].forEach(id=>{
+        const c = COLORS[id];
+        const item = document.createElement('span');
+        item.style.display = 'inline-flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '4px';
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        dot.style.background = c.main;
+        dot.style.boxShadow = '0 0 6px '+c.main;
+        item.appendChild(dot);
+        item.appendChild(document.createTextNode(c.label));
+        group.appendChild(item);
+      });
+      wrap.appendChild(group);
+    });
   }
 
   function buildRoster(){
@@ -1419,4 +1484,4 @@
 })();
 </script>
 </body>
-</html> -->
+</html>
